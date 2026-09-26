@@ -67,7 +67,7 @@ export default {
                 },
                 // Bonus figure bumping when it drops by 50
                 'tick-pop': {
-                    '0%': { transform: 'scale(1.25)', color: '#ff2d8a' },
+                    '0%': { transform: 'scale(1.12)', color: '#ff2d8a' },
                     '100%': { transform: 'scale(1)' },
                 },
                 'float': {

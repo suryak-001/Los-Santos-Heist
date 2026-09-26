@@ -28,7 +28,7 @@ const BonusCountdown: React.FC<BonusCountdownProps> = ({ gameState, now }) => {
                     <div className="hud-label text-heist-grey flex items-center gap-1.5">
                         <Timer size={12} /> Mission Passed bonus
                     </div>
-                    <div className="mt-1 flex items-baseline gap-2">
+                    <div className="mt-1 flex items-baseline gap-3">
                         <span
                             key={bonus}
                             className="inline-block origin-left font-mono tabular text-3xl lg:text-4xl font-extrabold text-heist-money drop-shadow-[0_0_12px_rgba(61,220,132,0.45)] animate-tick-pop"
