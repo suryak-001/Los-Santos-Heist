@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { X, ArrowRight } from 'lucide-react';
 
 interface TutorialStep {
@@ -57,10 +57,15 @@ interface TutorialProps {
     onComplete: () => void;
 }
 
+const MARGIN = 16; // Keep the tooltip this far inside the window
+const GAP = 20;    // Space between the tooltip and its target
+
+type Side = NonNullable<TutorialStep['position']>;
+
 const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
     const [currentStep, setCurrentStep] = useState(0);
-    const [position, setPosition] = useState({ top: 0, left: 0 });
     const [isMobile, setIsMobile] = useState(globalThis.innerWidth < 768);
+    const tooltipRef = useRef<HTMLDivElement>(null);
 
     // Mobile detection
     useEffect(() => {
@@ -69,54 +74,49 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
         return () => globalThis.removeEventListener('resize', handleResize);
     }, []);
 
-    useEffect(() => {
-        const step = TUTORIAL_STEPS[currentStep];
-
-        if (isMobile) {
-            // On mobile, always use bottom-sheet style positioning
-            // eslint-disable-next-line
-            setPosition({
-                top: globalThis.innerHeight - 300, // Bottom sheet style
-                left: 16, // Padding from edges
-            });
-        } else if (step.targetId) {
-            const element = document.getElementById(step.targetId);
-            if (element) {
-                const rect = element.getBoundingClientRect();
-                let top = 0;
-                let left = 0;
-
-                switch (step.position) {
-                    case 'right':
-                        top = rect.top + rect.height / 2;
-                        left = rect.right + 20;
-                        break;
-                    case 'left':
-                        top = rect.top + rect.height / 2;
-                        left = rect.left - 320;
-                        break;
-                    case 'bottom':
-                        top = rect.bottom + 20;
-                        left = rect.left + rect.width / 2 - 150;
-                        break;
-                    case 'top':
-                        top = rect.top - 200;
-                        left = rect.left + rect.width / 2 - 150;
-                        break;
-                    default:
-                        top = globalThis.innerHeight / 2 - 100;
-                        left = globalThis.innerWidth / 2 - 150;
-                }
-
-                setPosition({ top, left });
+    // Place the tooltip using its real size: the preferred side if it fits,
+    // otherwise any side that fits, otherwise clamped inside the window.
+    // Mobile uses a bottom sheet anchored with CSS instead.
+    useLayoutEffect(() => {
+        const place = () => {
+            const tip = tooltipRef.current;
+            if (!tip) return;
+            if (isMobile) {
+                tip.style.top = '';
+                tip.style.left = '';
+                return;
             }
-        } else {
-            // Center for steps without target
-            setPosition({
-                top: globalThis.innerHeight / 2 - 100,
-                left: globalThis.innerWidth / 2 - 200,
-            });
-        }
+            const { width: w, height: h } = tip.getBoundingClientRect();
+            const vw = globalThis.innerWidth;
+            const vh = globalThis.innerHeight;
+            const step = TUTORIAL_STEPS[currentStep];
+            const target = step.targetId ? document.getElementById(step.targetId)?.getBoundingClientRect() : undefined;
+
+            let spot = { top: (vh - h) / 2, left: (vw - w) / 2 };
+            if (target) {
+                const centreX = target.left + target.width / 2 - w / 2;
+                const centreY = target.top + target.height / 2 - h / 2;
+                const sides: Record<Side, { top: number; left: number }> = {
+                    right: { top: centreY, left: target.right + GAP },
+                    left: { top: centreY, left: target.left - w - GAP },
+                    bottom: { top: target.bottom + GAP, left: centreX },
+                    top: { top: target.top - h - GAP, left: centreX },
+                };
+                const fits = ({ top, left }: { top: number; left: number }) =>
+                    top >= MARGIN && left >= MARGIN && top + h <= vh - MARGIN && left + w <= vw - MARGIN;
+                const preferred = step.position ?? 'bottom';
+                const order: Side[] = [preferred, 'bottom', 'top', 'right', 'left'];
+                spot = order.map(side => sides[side]).find(fits) ?? sides[preferred];
+            }
+
+            const clamp = (value: number, max: number) => Math.max(MARGIN, Math.min(value, max));
+            tip.style.top = `${clamp(spot.top, vh - h - MARGIN)}px`;
+            tip.style.left = `${clamp(spot.left, vw - w - MARGIN)}px`;
+        };
+
+        place();
+        globalThis.addEventListener('resize', place);
+        return () => globalThis.removeEventListener('resize', place);
     }, [currentStep, isMobile]);
 
     const handleNext = () => {
@@ -160,12 +160,9 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
 
             {/* Tutorial Tooltip */}
             <div
-                className={`fixed z-50 bg-heist-dark border-2 border-heist-sun p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4' : 'max-w-sm'
+                ref={tooltipRef}
+                className={`fixed z-50 bg-heist-dark border-2 border-heist-sun p-6 shadow-2xl max-h-[calc(100vh-2rem)] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4 bottom-4' : 'w-96 max-w-[calc(100vw-2rem)]'
                     }`}
-                style={{
-                    top: `${position.top}px`,
-                    ...(isMobile ? {} : { left: `${position.left}px` })
-                }}
             >
                 <div className="flex justify-between items-start mb-4">
                     <div>
