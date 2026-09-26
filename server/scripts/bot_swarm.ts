@@ -7,7 +7,8 @@ import { GameState } from '../src/types/game';
 
 // CONFIG
 const SERVER_URL = 'http://localhost:3000';
-const NUM_BOTS = 12;
+// The spec's test run: NUM_BOTS=11 leaves district 12 free for a real player
+const NUM_BOTS = Number(process.env.NUM_BOTS) || 12;
 const ACTIVITY_INTERVAL_MS = 800; // FAST: Action every 0.8s per bot
 const CHANCE_TO_TRANSFER = 1.0; // Always transfer if surplus
 
