@@ -7,7 +7,8 @@ import path from 'node:path';
 
 const prisma = new PrismaClient();
 
-const TOTAL_SUPPLY = 32;
+// Tests point this elsewhere so they don't overwrite the saved game
+const STATE_PATH = process.env.GAME_STATE_PATH || path.join(__dirname, '../gameState.json');
 const RESOURCE_TYPES: ResourceType[] = ['Trishula', 'Gandiva', 'Vajra', 'Brahmastra'];
 
 export class GameManager {
@@ -54,7 +55,7 @@ export class GameManager {
             // We exclude 'messages' or keep them? User said "should not be lost".
             // We'll save the whole state except maybe 'players[].id' socket mapping if we want to force reconnect?
             // Actually, preserving socket IDs is fine, logic handles reclamation.
-            await fs.writeJSON(path.join(__dirname, '../gameState.json'), this.state, { spaces: 2 });
+            await fs.writeJSON(STATE_PATH, this.state, { spaces: 2 });
         } catch (error) {
             console.error('[GAME] Failed to save state:', error);
         }
@@ -62,9 +63,8 @@ export class GameManager {
 
     public async init() {
         try {
-            const statePath = path.join(__dirname, '../gameState.json');
-            if (await fs.pathExists(statePath)) {
-                const savedState = await fs.readJSON(statePath);
+            if (await fs.pathExists(STATE_PATH)) {
+                const savedState = await fs.readJSON(STATE_PATH);
 
                 // Merge logic: ensure structure compatibility
                 // We keep 'paused' state? Yes.
@@ -271,16 +271,13 @@ export class GameManager {
         const [token] = sender.inventory.splice(tokenIndex, 1);
 
         const wasComplete = this.isContractComplete(target);
+        const targetHeldBefore = token.history.includes(target.alias);
 
         token.history.push(target.alias);
         target.inventory.push(token);
 
-        if (this.state.stage === 1 && token.history.length >= 3) {
-            const previousHolder = this.getPreviousHolder(token);
-            if (previousHolder && this.isFacilitation(previousHolder.nodeId!, sender.nodeId!, targetNodeId)) {
-                this.recordFacilitation(previousHolder, sender, target, token);
-            }
-        }
+        const paidFixers = this.settleFixersCut(token, sender, target, targetHeldBefore);
+        paidFixers.forEach(f => f.score = this.calculateScore(f));
 
         sender.score = this.calculateScore(sender);
         target.score = this.calculateScore(target);
@@ -291,7 +288,7 @@ export class GameManager {
         }
 
         // PERSISTENCE (Update Player Stats)
-        this.persistPlayerStats([sender, target]);
+        this.persistPlayerStats([sender, target, ...paidFixers]);
 
         this.state.transactions.push({
             id: Math.random().toString(36).substring(2, 11),
@@ -618,7 +615,9 @@ export class GameManager {
         let pool: ResourceToken[] = totalNeeded.map((type, index) => ({
             id: `${type}-${100 + index}`,
             type: type,
-            history: ['SYSTEM']
+            history: ['SYSTEM'],
+            transit: [],
+            paidFixers: []
         }));
 
         // 3. Adjust Pool to config.totalResources
@@ -669,7 +668,9 @@ export class GameManager {
                 pool.push({
                     id: `${type}-${pool.length + 100 + i}`,
                     type: type,
-                    history: ['SYSTEM']
+                    history: ['SYSTEM'],
+                    transit: [],
+                    paidFixers: []
                 });
             }
         } else if (pool.length > targetTotal) {
@@ -789,42 +790,54 @@ export class GameManager {
         return score;
     }
 
-    private isFacilitation(prevNodeId: NodeId, currentNodeId: NodeId, nextNodeId: NodeId): boolean {
-        const prevNeighbors = NODES[prevNodeId].neighbors;
-        const nextNeighbors = NODES[nextNodeId].neighbors;
-        return (
-            prevNeighbors.includes(currentNodeId) &&
-            nextNeighbors.includes(currentNodeId) &&
-            !prevNeighbors.includes(nextNodeId)
-        );
+    // Fixer's Cut: every player who carried an item for someone else earns +100
+    // once it reaches a player whose Heist Order needs it. Returns the players paid.
+    private settleFixersCut(token: ResourceToken, sender: Player, target: Player, targetHeldBefore: boolean): Player[] {
+        // Tokens saved before these fields existed
+        token.transit ??= [];
+        token.paidFixers ??= [];
+
+        if (!this.wouldHelpContract(target, token.type)) {
+            // The target is now carrying the item for someone else
+            if (!token.transit.includes(target.alias)) token.transit.push(target.alias);
+            return [];
+        }
+
+        const paid: Player[] = [];
+        // A target who held this item before gets it back from a bounce: nobody is paid
+        if (!targetHeldBefore) {
+            for (const alias of token.transit) {
+                if (alias === target.alias || token.paidFixers.includes(alias)) continue;
+                const fixer = this.findPlayerByAlias(alias);
+                if (!fixer?.nodeId) continue;
+
+                fixer.facilitationCount++;
+                fixer.facilitatedTransfers.push(token.id);
+                token.paidFixers.push(alias);
+
+                // The hop that handed the item to this fixer
+                const handedBy = this.findPlayerByAlias(token.history[token.history.lastIndexOf(alias) - 1]);
+                this.state.facilitations.push({
+                    id: Math.random().toString(36).substring(2, 11),
+                    facilitatorId: fixer.nodeId,
+                    facilitatorAlias: fixer.alias,
+                    fromNodeId: handedBy?.nodeId ?? sender.nodeId!,
+                    toNodeId: target.nodeId!,
+                    tokenId: token.id,
+                    tokenType: token.type,
+                    timestamp: Date.now(),
+                    helpedContractCompletion: true
+                });
+                paid.push(fixer);
+            }
+        }
+        token.transit = [];
+        return paid;
     }
 
-    private recordFacilitation(
-        facilitator: Player,
-        from: Player,
-        to: Player,
-        token: ResourceToken
-    ) {
-        const helpedContract = this.wouldHelpContract(to, token.type);
-
-        const facilitation: import('./types/game').Facilitation = {
-            id: Math.random().toString(36).substring(2, 11),
-            facilitatorId: facilitator.nodeId!,
-            facilitatorAlias: facilitator.alias,
-            fromNodeId: from.nodeId!,
-            toNodeId: to.nodeId!,
-            tokenId: token.id,
-            tokenType: token.type,
-            timestamp: Date.now(),
-            helpedContractCompletion: helpedContract
-        };
-
-        this.state.facilitations.push(facilitation);
-
-        if (helpedContract) {
-            facilitator.facilitationCount++;
-            facilitator.facilitatedTransfers.push(token.id);
-        }
+    private findPlayerByAlias(alias: string | undefined): Player | undefined {
+        if (!alias) return undefined;
+        return Object.values(this.state.players).find(p => p.alias === alias);
     }
 
     private wouldHelpContract(player: Player, type: ResourceType): boolean {
@@ -840,12 +853,6 @@ export class GameManager {
         player.inventory.forEach(t => counts[t.type]++);
 
         return RESOURCE_TYPES.every(r => counts[r] >= player.contract[r]);
-    }
-
-    private getPreviousHolder(token: ResourceToken): Player | null {
-        if (token.history.length < 2) return null;
-        const prevAlias = token.history[token.history.length - 2];
-        return Object.values(this.state.players).find(p => p.alias === prevAlias) || null;
     }
 
     // --- DATA PERSISTENCE HELPERS ---

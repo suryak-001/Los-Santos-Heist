@@ -4,6 +4,8 @@ export interface ResourceToken {
   id: string; // e.g., 'Alpha-101'
   type: ResourceType;
   history: string[]; // ['System', 'TT_BM_1', 'TT_BM_3']
+  transit: string[]; // Aliases carrying this item for someone else; paid when it reaches a player who needs it
+  paidFixers: string[]; // Aliases already paid a Fixer's Cut for this item
 }
 
 export type NodeId = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12';

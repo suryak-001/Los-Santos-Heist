@@ -6,7 +6,8 @@
     "build": "rm -rf dist && tsc",
     "start": "node dist/src/index.js",
     "dev": "nodemon --watch src src/index.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "ts-node scripts/test_round2.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.13.0",
