@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Draggable from 'react-draggable';
 import { Socket } from 'socket.io-client';
 import type { GameState, NodeId } from '../types/game';
-import { NODES } from '../topology';
+import { NODES, NODE_POSITIONS } from '../topology';
 import { Play, Users, GripHorizontal, FileText, Activity, Trophy, Gem, BarChart3, Trash2, RotateCcw } from 'lucide-react';
 import AdminLeaderboard from './AdminLeaderboard';
 import AdminStats from './AdminStats';
@@ -13,15 +13,10 @@ interface AdminPanelProps {
     gameState: GameState;
 }
 
-// Initial Layout
-const INITIAL_POSITIONS: Record<NodeId, { x: number, y: number }> = {
-    '1': { x: 300, y: 150 }, '2': { x: 300, y: 350 },
-    '3': { x: 100, y: 50 }, '4': { x: 500, y: 250 },
-    '5': { x: 100, y: 250 }, '6': { x: 100, y: 450 },
-    '7': { x: 50, y: 20 }, '8': { x: 150, y: 20 },
-    '9': { x: 600, y: 250 }, '10': { x: 20, y: 250 },
-    '11': { x: 50, y: 500 }, '12': { x: 150, y: 500 },
-};
+// Initial layout: the players' city map, as top-left corners of the 80px node circles
+const INITIAL_POSITIONS = Object.fromEntries(
+    Object.entries(NODE_POSITIONS).map(([id, { x, y }]) => [id, { x: x - 40, y: y - 40 }])
+) as Record<NodeId, { x: number, y: number }>;
 
 const NODE_COLORS: Record<string, string> = {
     '1': '#ef4444', '2': '#3b82f6', '3': '#22c55e', '4': '#eab308',

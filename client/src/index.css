@@ -5,6 +5,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Glow around districts a player can hand loot to */
+:root {
+  --glow: rgba(255, 51, 51, 0.45);
+}
+
 @layer base {
   body {
     @apply bg-myth-black text-myth-white font-sans antialiased selection:bg-myth-red selection:text-white;

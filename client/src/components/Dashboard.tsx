@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import type { GameState, ResourceType, NodeId, ResourceToken } from '../types/game';
 import { NODES, formatDistricts } from '../topology';
-import { Copy, AlertCircle, Paperclip, X, Crosshair, Search, MessageCircle } from 'lucide-react';
+import { Copy, AlertCircle, Paperclip, X, Crosshair, MessageCircle } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Tutorial from './Tutorial';
+import CityMap from './CityMap';
 import { completionBonusAt } from '../scoring';
 
 interface DashboardProps {
@@ -42,7 +43,6 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     const [selectedNeighbor, setSelectedNeighbor] = useState<NodeId | null>(null);
     const [chatInput, setChatInput] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
-    const [searchQuery, setSearchQuery] = useState('');
 
     // --- MOBILE STATE ---
     const [showInventoryModal, setShowInventoryModal] = useState(false);
@@ -91,7 +91,10 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
     // Server rejections (wrong turf, paused game, ...)
     useEffect(() => {
-        const onError = (msg: string) => toast.error(msg);
+        const onError = (msg: string) => {
+            pendingSends.current.clear();
+            toast.error(msg);
+        };
         socket.on('action_error', onError);
         return () => { socket.off('action_error', onError); };
     }, [socket]);
@@ -183,6 +186,19 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
         }
     }, [selectedNeighbor]);
 
+    // Items handed over, keyed by token id. The success toast waits until the
+    // server confirms by removing the item from our inventory.
+    const pendingSends = useRef(new Map<string, { type: string; to: NodeId }>());
+    useEffect(() => {
+        if (!me) return;
+        pendingSends.current.forEach((send, tokenId) => {
+            if (!me.inventory.some(t => t.id === tokenId)) {
+                toast.success(`📤 ITEM SENT\n${send.type} to ${NODES[send.to].label}`, { duration: 3000, position: 'top-right' });
+                pendingSends.current.delete(tokenId);
+            }
+        });
+    }, [me, me?.inventory]);
+
     // Toast for received resources
     const prevInventoryLength = useRef(me?.inventory.length || 0);
     useEffect(() => {
@@ -200,20 +216,35 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
     if (!me || !myNode) return <div className="p-10 text-center text-myth-grey font-mono animate-pulse">INITIALIZING MYTH_CORE...</div>;
 
+    // Turf War: loot goes only to direct neighbours. Open City: to anyone.
+    const canHandTo = (nodeId: NodeId) =>
+        nodeId !== me.nodeId && (gameState.stage === 2 || myNode.neighbors.includes(nodeId));
+    const OUT_OF_TURF = 'Out of your turf. Hand it to a neighbour to pass it on.';
+
+    const handOver = (token: ResourceToken, targetNodeId: NodeId) => {
+        pendingSends.current.set(token.id, { type: token.type, to: targetNodeId });
+        socket.emit('transfer_resource', { targetNodeId, tokenId: token.id });
+    };
+
+    const openAttach = () => {
+        if (selectedNeighbor && !canHandTo(selectedNeighbor)) {
+            toast.error(OUT_OF_TURF);
+            return;
+        }
+        setShowInventoryModal(true);
+    };
+
     const sendMessage = () => {
         if (!selectedNeighbor) return;
         const target = Object.values(gameState.players).find(p => p.nodeId === selectedNeighbor);
         if (!target) return;
 
         if (pendingAttachment) {
-            socket.emit('transfer_resource', {
-                targetNodeId: selectedNeighbor,
-                tokenId: pendingAttachment.id
-            });
-            toast.success(String.raw`📤 ITEM SENT\n${pendingAttachment.type} to COUNTRY ${selectedNeighbor}`, {
-                duration: 3000,
-                position: 'top-right',
-            });
+            if (!canHandTo(selectedNeighbor)) {
+                toast.error(OUT_OF_TURF);
+                return;
+            }
+            handOver(pendingAttachment, selectedNeighbor);
             setPendingAttachment(null);
         }
 
@@ -236,11 +267,12 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
         const tokenData = e.dataTransfer.getData('token');
         if (!tokenData) return;
         const token: ResourceToken = JSON.parse(tokenData);
+        if (!canHandTo(targetNodeId)) {
+            toast.error(OUT_OF_TURF);
+            return;
+        }
         if (confirm(`SACRIFICE ${token.type} (${token.id}) to COUNTRY ${targetNodeId}?`)) {
-            socket.emit('transfer_resource', {
-                targetNodeId: targetNodeId,
-                tokenId: token.id
-            });
+            handOver(token, targetNodeId);
         }
     };
 
@@ -254,18 +286,7 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     me.inventory.forEach(t => myCounts[t.type]++);
     const isContractMet = RESOURCE_TYPES.every(r => myCounts[r] >= me.contract[r]);
 
-    // Determines which nodes are visible in the map
-    const visibleNodes = (gameState.stage === 2
-        ? Object.values(gameState.players).filter(p => p.nodeId && p.id !== me.id).map(p => p.nodeId!)
-        : myNode.neighbors
-    ).filter(nId => {
-        if (!searchQuery) return true;
-        const neighbor = Object.values(gameState.players).find(p => p.nodeId === nId);
-        const alias = neighbor?.alias?.toLowerCase() || '';
-        const id = nId.toLowerCase();
-        const query = searchQuery.toLowerCase();
-        return id.includes(query) || alias.includes(query);
-    });
+    const selectedCanReceive = selectedNeighbor ? canHandTo(selectedNeighbor) : false;
 
     return (
         <div className="h-screen lokah-bg text-myth-white font-sans p-4 lg:p-8 flex flex-col gap-px border border-myth-grey/40 overflow-hidden">
@@ -380,72 +401,32 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                 {/* RIGHT COLUMN: PREDICTIONS / COMMS */}
                 <main className="col-span-1 lg:col-span-8 flex flex-col h-full min-h-0">
 
-                    {/* NEIGHBOR SELECTION (LOKAH MAP) */}
-                    <div id="lokah-map-section" className="p-6 border-b border-myth-grey flex flex-col shrink-0">
-                        <div className="flex justify-between items-center mb-4">
+                    {/* CITY MAP */}
+                    <div id="lokah-map-section" className="p-4 lg:p-6 border-b border-myth-grey flex flex-col shrink-0">
+                        <div className="flex justify-between items-center mb-3 gap-4">
                             <h2 className="text-xs uppercase tracking-widest text-myth-grey font-bold flex items-center gap-2">
                                 Lokah Map
                             </h2>
-                            <div className="relative">
-                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-myth-grey" size={12} />
-                                <input
-                                    type="text"
-                                    placeholder="SEARCH COUNTRY..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-myth-dark border border-myth-grey text-xs p-1 pl-8 text-myth-white placeholder-myth-grey/50 font-mono uppercase focus:outline-none focus:border-myth-gold w-32 focus:w-48 transition-all"
-                                />
-                            </div>
+                            <span className="text-[10px] uppercase tracking-widest text-myth-grey text-right">
+                                {gameState.stage === 2 ? 'Hand loot to anyone' : 'Call anyone · hand loot to glowing districts'}
+                            </span>
                         </div>
 
-                        <div className="overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-max max-h-[400px] lg:max-h-[350px] scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
-                            {visibleNodes.length === 0 ? (
-                                <div className="col-span-full py-8 text-center text-myth-grey/50 font-mono text-xs">
-                                    NO COUNTRIES FOUND // RANGE SCAN EMPTY
-                                </div>
-                            ) : (
-                                visibleNodes.map(nId => {
-                                    const neighbor = Object.values(gameState.players).find(p => p.nodeId === nId);
+                        <div className="max-w-3xl w-full mx-auto">
+                            <CityMap
+                                gameState={gameState}
+                                me={me}
+                                selected={selectedNeighbor}
+                                unreadCounts={unreadCounts}
+                                canHandTo={canHandTo}
+                                onSelect={(nId) => {
                                     const isSelected = selectedNeighbor === nId;
-                                    const unreadCount = unreadCounts[nId] || 0;
-                                    return (
-                                        <button
-                                            key={nId}
-                                            onClick={() => {
-                                                setSelectedNeighbor(isSelected ? null : nId);
-                                                // Auto-open chat on mobile when selecting a node
-                                                if (!isSelected && isMobile) {
-                                                    setShowMobileChat(true);
-                                                }
-                                            }}
-                                            onDrop={(e) => handleDrop(e, nId)}
-                                            onDragOver={(e) => e.preventDefault()}
-                                            className={`
-                                                h-24 lg:h-20 w-full border-2 flex flex-col items-center justify-center transition-all duration-300 relative touch-target
-                                                ${isSelected
-                                                    ? 'bg-myth-gold/90 text-myth-black border-myth-gold shadow-[0_0_15px_rgba(255,215,0,0.5)]'
-                                                    : 'glass-dark text-myth-grey hover:border-myth-gold hover:text-myth-gold hover:shadow-[0_0_10px_rgba(255,215,0,0.2)]'
-                                                }
-                                            `}
-                                        >
-                                            <div className={`font-serif text-base lg:text-lg font-black uppercase ${!isSelected && 'group-hover:animate-pulse'}`}>
-                                                COUNTRY {nId}
-                                            </div>
-                                            <div className={`text-[9px] uppercase font-bold tracking-widest ${isSelected ? 'text-myth-black' : 'text-myth-grey/50'}`}>
-                                                {neighbor?.alias || 'OFFLINE'}
-                                            </div>
-                                            {neighbor?.online && (
-                                                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_cyan]"></div>
-                                            )}
-                                            {unreadCount > 0 && (
-                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
-                                                    {unreadCount}
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })
-                            )}
+                                    setSelectedNeighbor(isSelected ? null : nId);
+                                    // Auto-open chat on mobile when selecting a district
+                                    if (!isSelected && isMobile) setShowMobileChat(true);
+                                }}
+                                onDropToken={handleDrop}
+                            />
                         </div>
                     </div>
 
@@ -502,8 +483,10 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                             {/* INPUT */}
                             <div className="p-6 border-t border-myth-grey bg-myth-black flex gap-0 shrink-0">
                                 <button
-                                    onClick={() => setShowInventoryModal(true)}
-                                    className="p-4 border-2 border-r-0 border-myth-grey hover:bg-myth-grey/20 text-myth-grey transition-colors"
+                                    onClick={openAttach}
+                                    aria-disabled={!selectedCanReceive}
+                                    title={selectedCanReceive ? 'Attach loot' : OUT_OF_TURF}
+                                    className={`p-4 border-2 border-r-0 border-myth-grey text-myth-grey transition-colors ${selectedCanReceive ? 'hover:bg-myth-grey/20' : 'opacity-30 cursor-not-allowed'}`}
                                 >
                                     <Paperclip size={20} />
                                 </button>
@@ -668,12 +651,16 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                     <div className="shrink-0 p-4 border-t border-myth-grey bg-myth-black safe-area-bottom">
                         <div className="flex gap-2 mb-3">
                             <button
-                                onClick={() => setShowInventoryModal(true)}
-                                className="px-4 py-3 border-2 border-myth-grey hover:bg-myth-grey/20 text-myth-grey transition-colors touch-target flex items-center gap-2"
+                                onClick={openAttach}
+                                aria-disabled={!selectedCanReceive}
+                                className={`px-4 py-3 border-2 border-myth-grey text-myth-grey transition-colors touch-target flex items-center gap-2 ${selectedCanReceive ? 'hover:bg-myth-grey/20' : 'opacity-30'}`}
                             >
                                 <Paperclip size={18} />
                                 <span className="text-xs font-bold uppercase">Attach</span>
                             </button>
+                            {!selectedCanReceive && (
+                                <span className="self-center text-[10px] uppercase text-myth-grey">Not your turf: chat only</span>
+                            )}
                         </div>
                         <div className="flex gap-2">
                             <input
