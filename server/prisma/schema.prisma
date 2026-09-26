@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameSession {
+  id        String    @id @default(uuid())
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  status    String    @default("ACTIVE") // ACTIVE, TERMINATED
+  players   Player[]
+  transactions Transaction[]
+}
+
+model Player {
+  id            String      @id @default(uuid())
+  alias         String
+  nodeId        Int
+  finalScore    Int         @default(0)
+  gameSessionId String
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id])
+}
+
+model Transaction {
+  id            String      @id @default(uuid())
+  timestamp     DateTime    @default(now())
+  fromId        String
+  toId          String
+  amount        Int         @default(1)
+  resourceType  String
+  gameSessionId String
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id])
+}
+
+model Leaderboard {
+  id        Int               @id @default(1)
+  round     Int               @default(1)
+  updatedAt DateTime          @updatedAt
+  entries   LeaderboardEntry[]
+}
+
+model LeaderboardEntry {
+  id            String      @id @default(uuid())
+  leaderboardId Int
+  leaderboard   Leaderboard @relation(fields: [leaderboardId], references: [id], onDelete: Cascade)
+  playerId      String? // Optional link to Player model if needed, but keeping loose for now
+  name          String
+  rank          Int
+  score         Int
+  country       String?
+  status        String?
+  updatedAt     DateTime    @default(now())
+}

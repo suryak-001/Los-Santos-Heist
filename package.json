@@ -1,0 +1,22 @@
+{
+  "name": "ttbm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "concurrently \"npm run build --prefix server\" \"npm run build --prefix client\"",
+    "start": "npm run build && npm start --prefix server",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ]
+}
