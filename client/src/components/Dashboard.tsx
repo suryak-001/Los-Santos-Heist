@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import type { GameState, ResourceType, NodeId, ResourceToken } from '../types/game';
-import { NODES } from '../topology';
+import { NODES, formatDistricts } from '../topology';
 import { Copy, AlertCircle, Paperclip, X, Crosshair, Search, MessageCircle } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Tutorial from './Tutorial';
@@ -66,6 +66,35 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
             hasShownCompletionRef.current = false;
         }
     }, [me?.completionTime]);
+
+    // --- POLICE RAID ---
+    const [raidFlash, setRaidFlash] = useState(false);
+    useEffect(() => {
+        let timeout: ReturnType<typeof setTimeout>;
+        const onRaid = ({ districts, seized }: { districts: NodeId[]; seized: { nodeId: NodeId; type: ResourceType }[] }) => {
+            setRaidFlash(true);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => setRaidFlash(false), 3000);
+            const mine = seized.find(s => s.nodeId === me?.nodeId);
+            if (mine) {
+                toast.error(`🚨 LSPD seized your ${mine.type}`, { duration: 6000 });
+            } else {
+                toast(`🚨 Raid hit ${formatDistricts(districts)}`, { duration: 6000 });
+            }
+        };
+        socket.on('police_raid', onRaid);
+        return () => {
+            socket.off('police_raid', onRaid);
+            clearTimeout(timeout);
+        };
+    }, [socket, me?.nodeId]);
+
+    // Server rejections (wrong turf, paused game, ...)
+    useEffect(() => {
+        const onError = (msg: string) => toast.error(msg);
+        socket.on('action_error', onError);
+        return () => { socket.off('action_error', onError); };
+    }, [socket]);
 
     // Ticks every second for the live completion bonus
     const [now, setNow] = useState(() => Date.now());
@@ -734,6 +763,15 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 Continue To Observe
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* POLICE RAID FLASH */}
+            {raidFlash && (
+                <div className="fixed inset-0 z-[200] raid-flash flex items-center justify-center pointer-events-none" role="alert">
+                    <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter drop-shadow-[0_6px_0_rgba(0,0,0,0.9)]">
+                        LSPD RAID
                     </div>
                 </div>
             )}

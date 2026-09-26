@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Trophy, Gem, Activity, Box, Volume2, VolumeX } from 'lucide-react';
 import type { GameState } from '../types/game';
+import { formatDistricts } from '../topology';
 
 interface PublicLayoutProps {
     gameState: GameState | null;
@@ -150,6 +151,13 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ gameState, children, active
                     </div>
                 </div>
             </header>
+
+            {/* RAID REPORT (rest of the game after the raid) */}
+            {gameState?.raid?.done && (
+                <div className="raid-banner text-white text-center py-2 px-4 font-black uppercase tracking-widest text-xs md:text-sm" role="status">
+                    🚨 Raid Report: LSPD raided {formatDistricts(gameState.raid.districts)}
+                </div>
+            )}
 
             {/* CONTENT */}
             <main className="flex-1 relative overflow-auto">

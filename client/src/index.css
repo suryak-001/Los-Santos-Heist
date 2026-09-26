@@ -118,3 +118,23 @@
     overscroll-behavior-y: contain;
   }
 }
+/* POLICE RAID: red/blue siren flash */
+@keyframes raid-flash {
+  0%, 100% { background-color: rgba(255, 30, 60, 0.6); }
+  50% { background-color: rgba(30, 90, 255, 0.6); }
+}
+
+.raid-flash {
+  animation: raid-flash 0.5s steps(1) infinite;
+}
+
+.raid-banner {
+  background: linear-gradient(90deg, #d4143c, #1d4ed8, #d4143c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raid-flash {
+    animation: none;
+    background-color: rgba(30, 60, 200, 0.6);
+  }
+}

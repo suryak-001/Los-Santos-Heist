@@ -157,6 +157,67 @@ async function main() {
         assert.equal(byNode(3).score, 100 + 550);
     });
 
+    console.log('\nPolice Raid');
+
+    await check('seizes exactly 3 items from the 3 most exposed players, once', async () => {
+        const { game, byNode, give } = await freshGame();
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
+        for (let i = 0; i < 5; i++) give(1, 'Vajra');
+        for (let i = 0; i < 4; i++) give(2, 'Vajra');
+        for (let i = 0; i < 3; i++) give(3, 'Vajra');
+        give(4, 'Vajra'); give(5, 'Vajra');
+        const before = Object.values(game.getState().players).reduce((n, p) => n + p.inventory.length, 0);
+
+        assert.ok(game.policeRaid().success);
+        const after = Object.values(game.getState().players).reduce((n, p) => n + p.inventory.length, 0);
+        assert.equal(before - after, 3);
+        assert.deepEqual(game.getState().raid.districts, ['1', '2', '3']);
+        assert.equal(byNode(1).inventory.length, 4);
+        assert.equal(game.getState().transactions.filter(t => t.to === 'POLICE').length, 3);
+
+        assert.equal(game.policeRaid().success, false);
+        const again = Object.values(game.getState().players).reduce((n, p) => n + p.inventory.length, 0);
+        assert.equal(again, after);
+    });
+
+    await check("never takes a completed player's needed items", async () => {
+        const { game, byNode, give, send } = await freshGame();
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
+        // Node 1 is complete and holds 5 items, only 2 of them spare
+        byNode(1).contract = { Trishula: 0, Gandiva: 1, Vajra: 2, Brahmastra: 0 };
+        give(1, 'Vajra'); give(1, 'Vajra'); give(1, 'Gandiva'); give(1, 'Trishula');
+        send(3, 1, give(3, 'Trishula'));
+        assert.ok(byNode(1).completionTime);
+        // Three incomplete players hold 1 item each, so node 1 (2 exposed) is ranked first
+        give(7, 'Vajra'); give(8, 'Vajra'); give(9, 'Vajra');
+
+        assert.ok(game.policeRaid().success);
+        assert.equal(game.getState().raid.districts[0], '1');
+        assert.equal(byNode(1).inventory.filter(t => t.type === 'Trishula').length, 1);
+        assert.equal(byNode(1).inventory.filter(t => t.type === 'Vajra').length, 2);
+        assert.ok(byNode(1).completionTime, 'still complete');
+    });
+
+    await check('players with nothing exposed are skipped; reset clears the raid', async () => {
+        const { game, byNode, give } = await freshGame();
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
+        give(7, 'Vajra');
+        assert.ok(game.policeRaid().success);
+        assert.deepEqual(game.getState().raid.districts, ['7']);
+        assert.equal(byNode(7).inventory.length, 0);
+        await game.resetGame();
+        assert.equal(game.getState().raid.done, false);
+        assert.equal(game.getState().totalPausedMs, 0);
+    });
+
+    await check('the raid is refused while paused or before the game starts', async () => {
+        const { game } = await freshGame();
+        game.pauseGame();
+        assert.equal(game.policeRaid().success, false);
+        await game.resetGame();
+        assert.equal(game.policeRaid().success, false);
+    });
+
     console.log(`\n${passed} checks passed`);
 }
 

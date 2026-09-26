@@ -142,6 +142,19 @@ io.on('connection', (socket) => {
         broadcastState();
     });
 
+    onAdmin('admin_police_raid', () => {
+        const res = game.policeRaid();
+        if (!res.success) {
+            socket.emit('action_error', res.msg);
+            return;
+        }
+        broadcastState();
+        io.emit('leaderboard_update', leaderboardManager.getState());
+        const { districts, seized } = game.getState().raid;
+        io.emit('police_raid', { districts, seized });
+        socket.emit('admin_msg', `Police Raid hit ${districts.length} districts`);
+    });
+
     // --- LOTTERY ---
     onAdmin('admin_update_lottery', (candidates: string[]) => {
         game.updateLotteryCandidates(candidates);

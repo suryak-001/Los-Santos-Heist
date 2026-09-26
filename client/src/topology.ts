@@ -28,5 +28,10 @@ export const NODES: Record<NodeId, NodeDef> = {
     '12': { id: '12', label: 'Leaf', role: 'Outlier', neighbors: ['6'] },
 };
 
-// Helper: Get layout for frontend (optional, hardcoded positions if needed)
-export const NODE_LAYOUT = []; // Initial positions handled in AdminPanel
+export const districtName = (id: NodeId): string => NODES[id]?.label ?? `District ${id}`;
+
+// "A", "A and B", "A, B and C"
+export const formatDistricts = (ids: NodeId[]): string => {
+    const names = ids.map(districtName);
+    return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+};

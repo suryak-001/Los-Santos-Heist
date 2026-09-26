@@ -6,7 +6,7 @@ import { NODES } from '../topology';
 import { Play, Users, GripHorizontal, FileText, Activity, Trophy, Gem, BarChart3, Trash2, RotateCcw } from 'lucide-react';
 import AdminLeaderboard from './AdminLeaderboard';
 import AdminStats from './AdminStats';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface AdminPanelProps {
     socket: Socket;
@@ -74,6 +74,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
     };
 
     const startGame = () => { socket.emit('start_game'); };
+
+    // Server confirmations and rejections
+    React.useEffect(() => {
+        const onMsg = (msg: string) => toast.success(msg);
+        const onError = (msg: string) => toast.error(msg);
+        socket.on('admin_msg', onMsg);
+        socket.on('action_error', onError);
+        return () => {
+            socket.off('admin_msg', onMsg);
+            socket.off('action_error', onError);
+        };
+    }, [socket]);
+
+    // Game clock (mm:ss since start) when the raid happened
+    const raidClock = (() => {
+        const { raid, startTime } = gameState;
+        if (!raid?.done || !raid.time || !startTime) return null;
+        const secs = Math.max(0, Math.floor((raid.time - startTime) / 1000));
+        return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+    })();
 
     // Force re-render to update animations/filters AND Clock
     // eslint-disable-next-line react-hooks/purity
@@ -641,6 +661,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                     </button>
                                 </div>
                             )}
+
+                            {/* POLICE RAID (once) */}
+                            {(gameState.phase === 'ACTIVE' || gameState.raid?.done) && (
+                                <div className="mt-2 pt-2 border-t border-gray-700">
+                                    {gameState.raid?.done ? (
+                                        <div className="w-full px-3 py-2 border border-blue-500/30 text-blue-300 text-xs font-bold uppercase rounded text-center">
+                                            Raid done at {raidClock}
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Send the POLICE RAID? The 3 players holding the most exposed loot each lose 1 item. This works only once.')) {
+                                                    socket.emit('admin_police_raid');
+                                                }
+                                            }}
+                                            disabled={gameState.paused}
+                                            className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-blue-600 text-white text-xs font-black uppercase rounded hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-center"
+                                        >
+                                            🚨 POLICE RAID
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="w-full h-full relative">
@@ -749,7 +792,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                                 <span className={`px-2 py-0.5 rounded text-[10px] ${getResourceBadgeClass(tx.type)}`}>{tx.type}</span>
                                             </td>
                                             <td className="p-3">{tx.from === 'SYSTEM' ? <span className="text-gray-500">SYSTEM</span> : `Node ${tx.from}`}</td>
-                                            <td className="p-3 font-bold">{`Node ${tx.to}`}</td>
+                                            <td className="p-3 font-bold">{tx.to === 'POLICE' ? <span className="text-blue-400">🚨 POLICE</span> : `Node ${tx.to}`}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -782,6 +825,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                     </section>
                 )}
             </div>
+            <Toaster position="bottom-right" toastOptions={{ style: { background: '#0a0a0a', color: '#fff', border: '1px solid #555', fontFamily: 'monospace', fontSize: '13px' } }} />
         </div>
     );
 };

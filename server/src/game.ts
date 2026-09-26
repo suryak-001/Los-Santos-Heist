@@ -1,5 +1,5 @@
 import { leaderboardManager } from './leaderboard';
-import { GameState, Player, ResourceType, NodeId, ResourceToken } from './types/game';
+import { GameState, Player, ResourceType, NodeId, ResourceToken, RaidState } from './types/game';
 import { NODES } from './topology';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs-extra';
@@ -10,6 +10,8 @@ const prisma = new PrismaClient();
 // Tests point this elsewhere so they don't overwrite the saved game
 const STATE_PATH = process.env.GAME_STATE_PATH || path.join(__dirname, '../gameState.json');
 const RESOURCE_TYPES: ResourceType[] = ['Trishula', 'Gandiva', 'Vajra', 'Brahmastra'];
+const RAID_TARGETS = 3;
+const NO_RAID = (): RaidState => ({ done: false, time: null, districts: [], seized: [] });
 
 export class GameManager {
     private state: GameState;
@@ -31,6 +33,7 @@ export class GameManager {
             transactions: [], // LOG
             facilitations: [], // Track facilitations
             currentSessionId: null,
+            raid: NO_RAID(),
             lottery: {
                 candidates: [],
                 winner: null,
@@ -206,6 +209,7 @@ export class GameManager {
         this.state.paused = false;
         this.state.pausedAt = null;
         this.state.totalPausedMs = 0;
+        this.state.raid = NO_RAID();
         this.distributeEconomy();
         this.saveState();
 
@@ -419,6 +423,7 @@ export class GameManager {
         };
 
         this.state.stage = 1;
+        this.state.raid = NO_RAID();
 
         this.state.lottery = {
             candidates: [],
@@ -461,6 +466,57 @@ export class GameManager {
         this.endPause(); // Unpause if paused, just end it
         this.state.timer.isRunning = false;
         this.saveState();
+    }
+
+    // Police Raid: seize 1 random exposed item from each of the 3 players holding
+    // the most exposed loot. A completed Heist Order is never broken: only items
+    // beyond what it needs are exposed. Seized items leave the game.
+    public policeRaid(): { success: boolean, msg?: string } {
+        if (this.state.phase !== 'ACTIVE') return { success: false, msg: 'Game is NOT ACTIVE.' };
+        if (this.state.paused) return { success: false, msg: 'Game is PAUSED.' };
+        if (this.state.raid?.done) return { success: false, msg: 'The raid already happened.' };
+
+        const suspects = Object.values(this.state.players)
+            .filter(p => p.nodeId)
+            .map(p => ({ player: p, exposed: this.exposedItems(p), tiebreak: Math.random() }))
+            .filter(s => s.exposed.length > 0)
+            .sort((a, b) => b.exposed.length - a.exposed.length || a.tiebreak - b.tiebreak)
+            .slice(0, RAID_TARGETS);
+
+        const raid: RaidState = { done: true, time: Date.now(), districts: [], seized: [] };
+        for (const { player, exposed } of suspects) {
+            const token = exposed[Math.floor(Math.random() * exposed.length)];
+            player.inventory = player.inventory.filter(t => t.id !== token.id);
+            token.transit = []; // Any delivery chain for it is over
+
+            raid.districts.push(player.nodeId!);
+            raid.seized.push({ nodeId: player.nodeId!, type: token.type });
+            this.state.transactions.push({
+                id: Math.random().toString(36).substring(2, 11),
+                timestamp: raid.time!,
+                tokenId: token.id,
+                from: player.nodeId!,
+                to: 'POLICE',
+                type: token.type
+            });
+
+            this.updateCompletion(player);
+            player.score = this.calculateScore(player);
+        }
+        this.state.raid = raid;
+
+        this.persistPlayerStats(suspects.map(s => s.player));
+        this.syncLeaderboard();
+        this.saveState();
+        console.log(`[GAME] Police Raid hit nodes ${raid.districts.join(', ')}`);
+        return { success: true };
+    }
+
+    private exposedItems(player: Player): ResourceToken[] {
+        if (!this.isContractComplete(player)) return [...player.inventory];
+        // Keep the first `needed` of each type locked in the heist; the rest are exposed
+        const kept: Record<ResourceType, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+        return player.inventory.filter(t => ++kept[t.type] > player.contract[t.type]);
     }
 
     public updateLotteryCandidates(candidates: string[]) {

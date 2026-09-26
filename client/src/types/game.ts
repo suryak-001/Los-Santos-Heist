@@ -16,7 +16,7 @@ export interface Transaction {
   timestamp: number;
   tokenId: string;
   from: string; // Node ID or 'SYSTEM'
-  to: string;   // Node ID
+  to: string;   // Node ID, or 'POLICE' for items seized in the raid
   type: ResourceType;
 }
 
@@ -92,6 +92,14 @@ export interface GameConfig {
   resourcesPerPlayer: number;
 }
 
+// Police Raid: triggered once by the admin
+export interface RaidState {
+  done: boolean;
+  time: number | null;
+  districts: NodeId[]; // Raided node ids, most exposed first
+  seized: { nodeId: NodeId; type: ResourceType }[];
+}
+
 export interface GameState {
   phase: 'LOBBY' | 'ACTIVE' | 'ENDED';
   stage: 1 | 2;
@@ -107,4 +115,5 @@ export interface GameState {
   facilitations: Facilitation[]; // Track all facilitations for analytics
   timer: TimerState;
   currentSessionId: string | null;
+  raid: RaidState;
 }

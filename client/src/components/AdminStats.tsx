@@ -91,6 +91,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
             if (t.to === nodeId) partners.add(t.from);
         });
         partners.delete('SYSTEM');
+        partners.delete('POLICE');
         return Array.from(partners);
     };
 
