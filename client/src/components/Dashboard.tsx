@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import type { GameState, ResourceType, NodeId, ResourceToken } from '../types/game';
+import type { GameState, ResourceType, NodeId, ResourceToken, ChatMessage } from '../types/game';
 import { NODES, formatDistricts } from '../topology';
-import { Copy, AlertCircle, Paperclip, X, Crosshair, MessageCircle } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import { Copy, Paperclip, X, Crosshair, MessageCircle, ScrollText, Briefcase, CircleCheck, Send, LogOut, Siren, PhoneCall, MapPin } from 'lucide-react';
+import toast, { Toaster, ToastBar, type Toast } from 'react-hot-toast';
 import Tutorial from './Tutorial';
 import CityMap from './CityMap';
-import { completionBonusAt } from '../scoring';
+import BonusCountdown from './BonusCountdown';
 
 interface DashboardProps {
     socket: Socket;
@@ -26,16 +26,57 @@ const getLootIcon = (type: string) => {
     }
 };
 
-// Hover tint behind each loot tile
+// Hover tint and glow for each loot tile
 const getLootTint = (type: string) => {
     switch (type) {
-        case 'Cash': return 'bg-[#3DDC84]';
-        case 'Artwork': return 'bg-[#A855F7]';
-        case 'Gold': return 'bg-[#FFD400]';
-        case 'Diamonds': return 'bg-[#22D3EE]';
+        case 'Cash': return 'bg-heist-money';
+        case 'Artwork': return 'bg-heist-purple';
+        case 'Gold': return 'bg-heist-gold';
+        case 'Diamonds': return 'bg-heist-cyan';
         default: return 'bg-gray-500';
     }
 };
+
+const getLootGlow = (type: string) => {
+    switch (type) {
+        case 'Cash': return 'hover:border-heist-money/70 hover:shadow-glow-money';
+        case 'Artwork': return 'hover:border-heist-purple/70 hover:shadow-glow-purple';
+        case 'Gold': return 'hover:border-heist-gold/70 hover:shadow-glow-gold';
+        case 'Diamonds': return 'hover:border-heist-cyan/70 hover:shadow-glow-cyan';
+        default: return 'hover:border-white/40';
+    }
+};
+
+// How long the raid overlay stays up: 3s of strobe, then the fade out (index.css)
+const RAID_OVERLAY_MS = 3750;
+
+// Toasts slide up and fade in from below (keyframes in index.css)
+const TOAST_ENTER = 'toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both';
+const TOAST_EXIT = 'toast-out 0.25s ease-in forwards';
+
+// One chat bubble; loot handovers show up as SYSTEM_TRANSFER|type|id
+const ChatBubble: React.FC<{ msg: ChatMessage; isMe: boolean; compact?: boolean }> = ({ msg, isMe, compact }) => (
+    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-slide-up`}>
+        <div className={`${compact ? 'max-w-[85%] p-3' : 'max-w-[75%] px-4 py-3'} rounded-2xl border shadow-lg ${isMe
+            ? 'bg-heist-light text-heist-black border-heist-light rounded-br-md'
+            : 'bg-white/[0.06] text-heist-white border-white/10 rounded-bl-md backdrop-blur-sm'}`}
+        >
+            <p className="text-sm font-bold leading-relaxed break-words">
+                {msg.message.startsWith('SYSTEM_TRANSFER|') ? (() => {
+                    const [, type, id] = msg.message.split('|');
+                    return (
+                        <span>
+                            <span className={isMe ? 'text-heist-pink' : 'text-heist-money'}>{isMe ? '📤 HANDED OVER' : '📥 RECEIVED'}</span>
+                            <br />
+                            <span className={`opacity-75 font-mono ${compact ? 'text-xs' : ''}`}>{type} [{id}]</span>
+                        </span>
+                    );
+                })() : msg.message}
+            </p>
+            <span className="block text-[9px] font-mono tabular mt-1.5 opacity-50 uppercase">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+        </div>
+    </div>
+);
 
 const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     const me = gameState.players[myId];
@@ -60,13 +101,14 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     const showCompletionModal = !!me?.completionTime && me.completionTime !== dismissedCompletion;
 
     // --- POLICE RAID ---
-    const [raidFlash, setRaidFlash] = useState(false);
+    // Counts raids so a second raid restarts the overlay; 0 = hidden
+    const [raidFlash, setRaidFlash] = useState(0);
     useEffect(() => {
         let timeout: ReturnType<typeof setTimeout>;
         const onRaid = ({ districts, seized }: { districts: NodeId[]; seized: { nodeId: NodeId; type: ResourceType }[] }) => {
-            setRaidFlash(true);
+            setRaidFlash(n => n + 1);
             clearTimeout(timeout);
-            timeout = setTimeout(() => setRaidFlash(false), 3000);
+            timeout = setTimeout(() => setRaidFlash(0), RAID_OVERLAY_MS);
             const mine = seized.find(s => s.nodeId === me?.nodeId);
             if (mine) {
                 toast.error(`🚨 LSPD seized your ${mine.type}`, { duration: 6000 });
@@ -262,124 +304,151 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
     const selectedCanReceive = selectedNeighbor ? canHandTo(selectedNeighbor) : false;
 
+    const contractTotal = Object.values(me.contract).reduce((a, b) => a + b, 0);
+    const selectedPlayer = selectedNeighbor ? Object.values(gameState.players).find(p => p.nodeId === selectedNeighbor) : undefined;
+
     return (
-        <div className="min-h-screen lg:h-screen city-bg text-heist-white font-sans p-4 lg:p-8 flex flex-col gap-px border border-heist-grey/40 lg:overflow-hidden">
+        <div className="min-h-screen lg:h-screen city-bg text-heist-white font-sans p-3 lg:p-6 flex flex-col gap-3 lg:gap-4 lg:overflow-hidden">
 
             {/* HEADER */}
-            <header className="swiss-grid mb-4 border-b-0 shrink-0">
-                <div className="col-span-12 lg:col-span-8 glass-dark border-b-0 border-r border-heist-grey">
+            <header className="flex flex-col lg:flex-row gap-3 lg:gap-4 shrink-0">
+                <div className="hud-panel hud-panel-accent flex-1 px-5 py-4 lg:px-6 animate-fade-up">
                     <h1 className="text-3xl lg:text-5xl font-display uppercase tracking-tight leading-none cursor-default">
                         <span className="vi-gradient">{myNode.label}</span>
-                        <div className="flex items-center justify-between mt-2">
-                            <span className="block text-sm lg:text-base font-bold text-heist-grey tracking-widest">
-                                {me.alias}
-                            </span>
-                            <button
-                                onClick={() => {
-                                    if (confirm("LEAVE THE JOB?")) {
-                                        localStorage.removeItem('player_alias');
-                                        globalThis.location.reload();
-                                    }
-                                }}
-                                className="text-[10px] bg-heist-pink/20 hover:bg-heist-pink text-heist-pink hover:text-white px-2 py-1 uppercase font-bold tracking-widest transition-colors border border-heist-pink/50"
-                            >
-                                Logout
-                            </button>
-                        </div>
                     </h1>
+                    <div className="flex items-center justify-between mt-3 gap-3">
+                        <span className="flex items-center gap-2 text-sm lg:text-base font-mono font-bold text-heist-grey tracking-widest">
+                            <MapPin size={14} className="text-heist-sun" /> {me.alias}
+                        </span>
+                        <button
+                            onClick={() => {
+                                if (confirm("LEAVE THE JOB?")) {
+                                    localStorage.removeItem('player_alias');
+                                    globalThis.location.reload();
+                                }
+                            }}
+                            className="flex items-center gap-1.5 rounded-full text-[10px] bg-heist-pink/10 hover:bg-heist-pink text-heist-pink hover:text-white px-3 py-1.5 uppercase font-bold tracking-widest transition-colors border border-heist-pink/40"
+                        >
+                            <LogOut size={12} /> Logout
+                        </button>
+                    </div>
                 </div>
-                <div className="col-span-12 lg:col-span-4 glass-dark border-b lg:border-l border-heist-grey flex flex-col justify-center p-6">
-                    <span className="text-xs uppercase tracking-widest text-heist-grey">Phase {gameState.stage}</span>
-                    <span className="text-3xl font-display text-heist-sun heist-title uppercase">{gameState.stage === 2 ? 'Open City' : 'Turf War'}</span>
+                <div className="hud-panel lg:w-80 px-5 py-4 lg:px-6 flex lg:flex-col items-center lg:items-start justify-between lg:justify-center gap-1 animate-fade-up stagger-1">
+                    <span className="hud-label text-heist-grey font-mono">Phase {gameState.stage}</span>
+                    <span className={`text-2xl lg:text-3xl font-display heist-title uppercase ${gameState.stage === 2 ? 'text-heist-cyan' : 'text-heist-sun'}`}>{gameState.stage === 2 ? 'Open City' : 'Turf War'}</span>
                 </div>
             </header>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 min-h-0">
 
                 {/* LEFT COLUMN: INVENTORY & CONTRACT */}
-                <aside className="col-span-1 lg:col-span-4 flex flex-col gap-2 lg:gap-0 lg:border-r border-heist-grey lg:overflow-y-auto">
+                <aside className="col-span-1 lg:col-span-4 flex flex-col gap-3 lg:gap-4 lg:overflow-y-auto lg:pr-1 min-h-0">
 
                     {/* CONTRACT */}
-                    <div id="contract-section" className="glass-dark border-b-0 mb-2 lg:mb-8 p-3 lg:p-6 shrink-0">
-                        <h2 className="text-xs uppercase tracking-widest text-heist-pink mb-2 font-bold flex items-center gap-2">
+                    <div id="contract-section" className="hud-panel hud-panel-accent p-4 lg:p-5 shrink-0 animate-fade-up stagger-2">
+                        <h2 className="hud-label text-heist-pink flex items-center gap-2">
                             <Crosshair size={14} /> Heist Order
                         </h2>
-                        <p className="text-[10px] text-heist-grey/70 uppercase tracking-wide mb-4">What you have to collect</p>
+                        <p className="text-[10px] text-heist-grey/70 uppercase tracking-wide mt-1 mb-4">What you have to collect</p>
 
-                        {Object.values(me.contract).reduce((a, b) => a + b, 0) === 0 ? (
-                            <div className="text-heist-grey text-sm font-mono uppercase">Awaiting the briefing...</div>
+                        {contractTotal === 0 ? (
+                            <div className="flex flex-col items-center text-center py-6 gap-3">
+                                <div className="relative">
+                                    <span className="absolute inset-0 rounded-full bg-heist-pink/20 animate-ping" aria-hidden="true" />
+                                    <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-heist-pink/25 to-heist-violet/25 border border-heist-pink/40 flex items-center justify-center">
+                                        <ScrollText size={24} className="text-heist-pink" />
+                                    </div>
+                                </div>
+                                <div className="text-heist-light text-sm font-mono uppercase tracking-widest">Awaiting the briefing...</div>
+                                <div className="text-[10px] text-heist-grey uppercase tracking-wide">Your order arrives when the job starts</div>
+                            </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-2.5">
                                 {RESOURCE_TYPES.map(r => {
                                     const needed = me.contract[r];
                                     if (needed === 0) return null;
                                     const current = myCounts[r];
                                     const met = current >= needed;
                                     return (
-                                        <div key={r} className={`flex justify-between items-center p-2 lg:p-3 border ${met ? 'border-heist-white bg-heist-white/5' : 'border-heist-grey/30 bg-heist-dark'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xl lg:text-2xl">{getLootIcon(r)}</span>
-                                                <span className={`text-xs lg:text-sm font-bold uppercase ${met ? 'text-heist-white' : 'text-heist-grey'}`}>{r}</span>
+                                        <div key={r} className={`relative overflow-hidden rounded-xl p-2.5 lg:p-3 border transition-colors duration-300 ${met ? 'border-heist-money/60 bg-heist-money/10 shadow-glow-money' : 'border-white/10 bg-black/30'}`}>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xl lg:text-2xl">{getLootIcon(r)}</span>
+                                                    <span className={`text-xs lg:text-sm font-bold uppercase ${met ? 'text-heist-white' : 'text-heist-grey'}`}>{r}</span>
+                                                </div>
+                                                <div className={`flex items-center gap-2 font-mono tabular text-lg lg:text-xl font-bold ${met ? 'text-heist-money' : 'text-heist-grey'}`}>
+                                                    {met && <CircleCheck size={16} />}
+                                                    {current}/{needed}
+                                                </div>
                                             </div>
-                                            <div className={`font-mono text-lg lg:text-xl ${met ? 'text-green-400' : 'text-heist-grey'}`}>
-                                                {current}/{needed}
+                                            <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-[width] duration-500 ease-out ${met ? 'bg-heist-money' : getLootTint(r)}`}
+                                                    style={{ width: `${Math.min(1, current / needed) * 100}%` }}
+                                                />
                                             </div>
                                         </div>
                                     );
                                 })}
                                 {isContractMet && (
-                                    <div className="mt-4 p-3 bg-green-500/10 border border-green-500 text-green-500 text-center font-bold uppercase text-xs tracking-widest animate-pulse">
+                                    <div className="mt-3 rounded-xl p-3 bg-heist-money/10 border border-heist-money text-heist-money text-center font-bold uppercase text-xs tracking-widest animate-pulse shadow-glow-money">
                                         Ready: Mission Passed
                                     </div>
                                 )}
                                 {me.completionBonus !== null ? (
-                                    <div className="text-xs font-mono uppercase text-heist-sun">
-                                        Bonus locked in: {me.completionBonus}
+                                    <div className="mt-3 rounded-xl border border-heist-money/40 bg-heist-money/10 px-3 py-2 text-xs font-mono uppercase text-heist-light flex justify-between">
+                                        Bonus locked in <span className="text-heist-money font-extrabold tabular">+{me.completionBonus}</span>
                                     </div>
                                 ) : gameState.phase === 'ACTIVE' && (
-                                    <div className="text-xs font-mono uppercase text-heist-grey">
-                                        Mission Passed bonus right now: <span className="text-heist-sun font-bold">{completionBonusAt(gameState, now)}</span>
-                                    </div>
+                                    <BonusCountdown gameState={gameState} now={now} />
                                 )}
                             </div>
                         )}
                     </div>
 
                     {/* INVENTORY */}
-                    <div id="inventory-section" className="bg-heist-black p-3 lg:p-6 flex-1 min-h-[150px] lg:min-h-[200px]">
-                        <h2 className="text-xs uppercase tracking-widest text-heist-grey mb-3 lg:mb-6 font-bold flex items-center gap-2">
-                            <Copy size={14} /> Loot
+                    <div id="inventory-section" className="hud-panel p-4 lg:p-5 flex-1 min-h-[150px] lg:min-h-[200px] animate-fade-up stagger-3">
+                        <h2 className="hud-label text-heist-grey mb-3 lg:mb-4 flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2"><Copy size={14} /> Loot</span>
+                            <span className="font-mono tabular text-heist-light rounded-full bg-white/10 px-2 py-0.5 text-[10px]">{me.inventory.length}</span>
                         </h2>
-                        <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
-                            {me.inventory.length === 0 && (
-                                <div className="col-span-3 text-center py-10 text-heist-grey/50 font-mono text-xs">EMPTY</div>
-                            )}
-                            {me.inventory.map((token) => (
-                                <button
-                                    type="button"
-                                    key={token.id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, token)}
-                                    className="aspect-square bg-heist-dark border border-heist-grey hover:bg-heist-grey/20 transition-colors flex flex-col items-center justify-center group relative overflow-hidden"
-                                >
-                                    <span className="text-3xl relative z-10 group-hover:scale-110 transition-transform">{getLootIcon(token.type)}</span>
-                                    <span className="text-[10px] font-bold text-heist-white uppercase mt-1">{token.type}</span>
-                                    <span className="text-[7px] font-mono text-heist-grey uppercase">{token.id.split('-')[1]}</span>
-                                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity ${getLootTint(token.type)}`}></div>
-                                </button>
-                            ))}
-                        </div>
+                        {me.inventory.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center text-center gap-3 py-8 rounded-xl border border-dashed border-white/15 bg-black/20">
+                                <Briefcase size={32} strokeWidth={1.5} className="text-heist-grey/70 animate-float" />
+                                <div>
+                                    <div className="text-heist-grey font-mono text-xs uppercase tracking-[0.3em]">Empty</div>
+                                    <div className="text-[10px] text-heist-grey/60 uppercase tracking-wide mt-1">Loot handed to you lands here</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-4 lg:grid-cols-3 gap-2">
+                                {me.inventory.map((token) => (
+                                    <button
+                                        type="button"
+                                        key={token.id}
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, token)}
+                                        className={`aspect-square rounded-xl bg-black/35 border border-white/10 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-grab active:cursor-grabbing flex flex-col items-center justify-center group relative overflow-hidden animate-slide-up ${getLootGlow(token.type)}`}
+                                    >
+                                        <span className="text-3xl relative z-10 group-hover:scale-110 transition-transform duration-200">{getLootIcon(token.type)}</span>
+                                        <span className="relative z-10 text-[10px] font-bold text-heist-white uppercase mt-1">{token.type}</span>
+                                        <span className="relative z-10 text-[8px] font-mono text-heist-grey uppercase">{token.id.split('-')[1]}</span>
+                                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-15 transition-opacity ${getLootTint(token.type)}`}></div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </aside>
 
-                {/* RIGHT COLUMN: PREDICTIONS / COMMS */}
-                <main className="col-span-1 lg:col-span-8 flex flex-col xl:flex-row h-full min-h-0 bg-heist-black/85">
+                {/* RIGHT COLUMN: MAP / COMMS */}
+                <main className="col-span-1 lg:col-span-8 flex flex-col xl:flex-row gap-3 lg:gap-4 h-full min-h-0">
 
                     {/* CITY MAP */}
-                    <div id="city-map-section" className="p-4 lg:p-6 border-b xl:border-b-0 xl:border-r border-heist-grey flex flex-col shrink-0 xl:w-[55%] xl:justify-center">
+                    <div id="city-map-section" className="hud-panel p-4 lg:p-5 flex flex-col shrink-0 xl:w-[55%] xl:justify-center animate-fade-up stagger-3">
                         <div className="flex justify-between items-center mb-3 gap-4">
-                            <h2 className="text-xs uppercase tracking-widest text-heist-grey font-bold flex items-center gap-2">
-                                Los Santos
+                            <h2 className="hud-label text-heist-grey flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-heist-money shadow-glow-money animate-pulse" /> Los Santos
                             </h2>
                             <span className="text-[10px] uppercase tracking-widest text-heist-grey text-right">
                                 {gameState.stage === 2 ? 'Hand loot to anyone' : 'Call anyone · hand loot to glowing districts'}
@@ -408,41 +477,41 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
                     {/* CHAT TERMINAL */}
                     {selectedNeighbor && !isMobile ? (
-                        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-                            <div className="p-4 bg-heist-dark border-b border-heist-grey text-xs font-mono text-heist-grey uppercase flex justify-between shrink-0">
-                                <span>PHONE // {NODES[selectedNeighbor].label}</span>
-                                <span>{gameState.players[Object.keys(gameState.players).find(k => gameState.players[k].nodeId === selectedNeighbor) || '']?.online ? 'ONLINE' : 'OFFLINE'}</span>
+                        <div key={selectedNeighbor} className="hud-panel flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden animate-fade-up">
+                            <div className="px-5 py-3.5 border-b border-white/10 bg-white/[0.03] flex justify-between items-center gap-3 shrink-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-heist-pink to-heist-violet flex items-center justify-center">
+                                        <PhoneCall size={16} className="text-white" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-bold uppercase truncate">{NODES[selectedNeighbor].label}</div>
+                                        <div className="text-[10px] font-mono text-heist-grey uppercase truncate">{selectedPlayer?.alias ?? 'Vacant'}</div>
+                                    </div>
+                                </div>
+                                <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase border ${selectedPlayer?.online ? 'text-heist-cyan border-heist-cyan/40 bg-heist-cyan/10' : 'text-heist-grey border-white/10 bg-white/5'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${selectedPlayer?.online ? 'bg-heist-cyan shadow-glow-cyan' : 'bg-heist-grey'}`} />
+                                    {selectedPlayer?.online ? 'Online' : 'Offline'}
+                                </span>
                             </div>
 
-                            <ul className="flex-1 overflow-y-auto p-6 space-y-4" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, selectedNeighbor)}>
-                                {relevantMessages.map((msg, idx) => {
-                                    const isMe = msg.senderId === me.id;
-                                    return (
-                                        <li key={`${msg.timestamp}-${idx}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[70%] p-4 border ${isMe ? 'bg-heist-white text-heist-black border-heist-white' : 'bg-black text-heist-white border-heist-grey'}`}>
-                                                <p className="text-sm font-bold leading-relaxed">
-                                                    {msg.message.startsWith('SYSTEM_TRANSFER|') ? (() => {
-                                                        const [, type, id] = msg.message.split('|');
-                                                        return (
-                                                            <span>
-                                                                <span className={isMe ? 'text-heist-pink' : 'text-green-400'}>{isMe ? '📤 HANDED OVER' : '📥 RECEIVED'}</span>
-                                                                <br />
-                                                                <span className="opacity-75">{type} [{id}]</span>
-                                                            </span>
-                                                        );
-                                                    })() : msg.message}
-                                                </p>
-                                                <span className="block text-[9px] font-mono mt-2 opacity-50 uppercase">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                            </div>
-                                        </li>
-                                    );
-                                })}
+                            <ul className="flex-1 overflow-y-auto p-5 space-y-3" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, selectedNeighbor)}>
+                                {relevantMessages.length === 0 && (
+                                    <li className="h-full flex flex-col items-center justify-center gap-2 text-heist-grey/70 text-xs font-mono uppercase tracking-widest">
+                                        <MessageCircle size={28} strokeWidth={1.5} />
+                                        No messages yet
+                                    </li>
+                                )}
+                                {relevantMessages.map((msg, idx) => (
+                                    <li key={`${msg.timestamp}-${idx}`}>
+                                        <ChatBubble msg={msg} isMe={msg.senderId === me.id} />
+                                    </li>
+                                ))}
                                 <div ref={chatEndRef}></div>
                             </ul>
 
                             {/* PENDING ATTACHMENT */}
                             {pendingAttachment && (
-                                <div className="p-4 bg-heist-dark border-t border-heist-grey flex items-center justify-between shrink-0">
+                                <div className="mx-4 mb-2 px-4 py-3 rounded-xl bg-heist-sun/10 border border-heist-sun/40 flex items-center justify-between shrink-0 animate-slide-up">
                                     <div className="flex items-center gap-4">
                                         <span className="text-2xl">{getLootIcon(pendingAttachment.type)}</span>
                                         <div className="text-xs uppercase">
@@ -450,37 +519,39 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                             <span className="font-bold text-heist-white">{pendingAttachment.type}</span>
                                         </div>
                                     </div>
-                                    <button onClick={() => setPendingAttachment(null)}>
+                                    <button onClick={() => setPendingAttachment(null)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
                                         <X className="text-heist-grey hover:text-heist-white" />
                                     </button>
                                 </div>
                             )}
 
                             {/* INPUT */}
-                            <div className="p-6 border-t border-heist-grey bg-heist-black flex gap-0 shrink-0">
-                                <button
-                                    onClick={openAttach}
-                                    aria-disabled={!selectedCanReceive}
-                                    title={selectedCanReceive ? 'Attach loot' : OUT_OF_TURF}
-                                    className={`p-4 border-2 border-r-0 border-heist-grey text-heist-grey transition-colors ${selectedCanReceive ? 'hover:bg-heist-grey/20' : 'opacity-30 cursor-not-allowed'}`}
-                                >
-                                    <Paperclip size={20} />
-                                </button>
-                                <input
-                                    type="text"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                                    placeholder="TYPE A MESSAGE..."
-                                    className="flex-1 bg-heist-black border-2 border-heist-grey p-4 text-heist-white placeholder-heist-grey/50 font-mono focus:outline-none focus:border-heist-white transition-colors uppercase"
-                                />
-                                <button
-                                    onClick={sendMessage}
-                                    disabled={!chatInput.trim() && !pendingAttachment}
-                                    className="p-4 border-2 border-l-0 border-heist-grey bg-heist-white text-heist-black hover:bg-heist-light disabled:opacity-50 disabled:cursor-not-allowed font-bold uppercase transition-colors"
-                                >
-                                    SEND
-                                </button>
+                            <div className="p-4 border-t border-white/10 bg-black/20 shrink-0">
+                                <div className="flex items-stretch gap-2 rounded-xl border border-white/15 bg-black/40 p-1.5 transition-all focus-within:border-heist-sun/70 focus-within:shadow-[0_0_15px_rgba(255,177,61,0.25)]">
+                                    <button
+                                        onClick={openAttach}
+                                        aria-disabled={!selectedCanReceive}
+                                        title={selectedCanReceive ? 'Attach loot' : OUT_OF_TURF}
+                                        className={`px-3 rounded-lg text-heist-grey transition-colors ${selectedCanReceive ? 'hover:bg-white/10 hover:text-heist-white' : 'opacity-30 cursor-not-allowed'}`}
+                                    >
+                                        <Paperclip size={20} />
+                                    </button>
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                                        placeholder="TYPE A MESSAGE..."
+                                        className="flex-1 min-w-0 bg-transparent px-2 py-2.5 text-heist-white placeholder-heist-grey/50 font-mono focus:outline-none uppercase"
+                                    />
+                                    <button
+                                        onClick={sendMessage}
+                                        disabled={!chatInput.trim() && !pendingAttachment}
+                                        className="btn-sunset px-4 text-xs flex items-center gap-2 !tracking-widest"
+                                    >
+                                        <Send size={14} /> SEND
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ) : selectedNeighbor && isMobile ? (
@@ -488,10 +559,10 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
                             <button
                                 onClick={() => setShowMobileChat(true)}
-                                className="w-full max-w-sm py-6 px-8 bg-heist-sun text-heist-black border-2 border-heist-sun hover:bg-heist-white font-black uppercase text-lg tracking-widest transition-colors"
+                                className="btn-sunset w-full max-w-sm py-5 px-8 text-lg"
                             >
                                 OPEN CHAT
-                                <div className="text-xs mt-2 font-mono opacity-75">{NODES[selectedNeighbor].label}</div>
+                                <div className="text-xs mt-1 font-mono opacity-75">{NODES[selectedNeighbor].label}</div>
                             </button>
                             {selectedNeighbor && (unreadCounts[selectedNeighbor] ?? 0) > 0 && (
                                 <div className="text-sm text-heist-pink font-bold uppercase animate-pulse">
@@ -500,9 +571,14 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                             )}
                         </div>
                     ) : (
-                        <div className="hidden md:flex flex-1 min-w-0 flex-col items-center justify-center text-heist-grey min-h-0">
-                            <AlertCircle size={64} strokeWidth={1} />
-                            <p className="mt-4 font-mono text-sm uppercase tracking-widest text-center px-4">Pick a district on the map to call them</p>
+                        <div className="hud-panel hidden md:flex flex-1 min-w-0 flex-col items-center justify-center gap-4 text-heist-grey min-h-0 p-6 animate-fade-up stagger-4">
+                            <div className="relative">
+                                <span className="absolute inset-0 rounded-full border border-heist-cyan/40 animate-district-ping" aria-hidden="true" />
+                                <div className="relative w-20 h-20 rounded-full bg-heist-cyan/10 border border-heist-cyan/30 flex items-center justify-center">
+                                    <PhoneCall size={32} strokeWidth={1.5} className="text-heist-cyan" />
+                                </div>
+                            </div>
+                            <p className="font-mono text-sm uppercase tracking-widest text-center px-4">Pick a district on the map to call them</p>
                         </div>
                     )}
                 </main>
@@ -510,15 +586,17 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
             {/* ATTACHMENT MODAL */}
             {showInventoryModal && (
-                <div className="fixed inset-0 z-[60] bg-heist-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-heist-dark border border-heist-grey p-8 w-full max-w-lg shadow-2xl">
-                        <div className="flex justify-between items-center mb-8 border-b border-heist-grey pb-4">
+                <div className="fixed inset-0 z-[60] bg-heist-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="hud-panel hud-panel-accent p-6 lg:p-8 w-full max-w-lg animate-slide-up">
+                        <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                             <h3 className="text-xl font-black uppercase text-heist-white">Select Loot</h3>
-                            <button onClick={() => setShowInventoryModal(false)} className="text-heist-grey hover:text-heist-white"><X size={24} /></button>
+                            <button onClick={() => setShowInventoryModal(false)} className="p-1 rounded-lg text-heist-grey hover:text-heist-white hover:bg-white/10 transition-colors"><X size={24} /></button>
                         </div>
-                        <div className="grid grid-cols-4 gap-4">
+                        <div className="grid grid-cols-4 gap-3">
                             {me.inventory.length === 0 ? (
-                                <div className="col-span-4 text-center py-12 text-heist-grey font-mono">NO LOOT</div>
+                                <div className="col-span-4 flex flex-col items-center gap-2 py-12 text-heist-grey font-mono text-xs uppercase tracking-widest">
+                                    <Briefcase size={28} strokeWidth={1.5} /> No loot
+                                </div>
                             ) : (
                                 me.inventory.map(token => (
                                     <button
@@ -527,7 +605,7 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                             setPendingAttachment(token);
                                             setShowInventoryModal(false);
                                         }}
-                                        className="aspect-square bg-heist-black border border-heist-grey hover:border-heist-white flex flex-col items-center justify-center transition-all group touch-target"
+                                        className={`aspect-square rounded-xl bg-black/40 border border-white/10 flex flex-col items-center justify-center transition-all duration-200 hover:-translate-y-0.5 group touch-target ${getLootGlow(token.type)}`}
                                     >
                                         <span className="text-3xl group-hover:scale-110 transition-transform">{getLootIcon(token.type)}</span>
                                         <span className="text-[9px] font-mono text-heist-grey uppercase mt-2">{token.id.split('-')[1]}</span>
@@ -543,11 +621,11 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
             {isMobile && selectedNeighbor && !showMobileChat && (
                 <button
                     onClick={() => setShowMobileChat(true)}
-                    className="fixed bottom-6 right-4 z-40 w-16 h-16 bg-heist-sun text-heist-black rounded-full shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:scale-110 active:scale-95 transition-transform flex items-center justify-center font-black border-2 border-heist-sun"
+                    className="fixed bottom-6 right-4 z-40 w-16 h-16 bg-gradient-to-br from-heist-sun to-heist-pink text-heist-black rounded-full shadow-glow-pink hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-slide-up"
                 >
                     <MessageCircle size={28} />
                     {(unreadCounts[selectedNeighbor] ?? 0) > 0 && (
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-heist-pink text-white text-xs font-mono font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-heist-black">
                             {unreadCounts[selectedNeighbor]}
                         </div>
                     )}
@@ -556,14 +634,16 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
             {/* MOBILE CHAT FULLSCREEN MODAL */}
             {showMobileChat && isMobile && selectedNeighbor && (
-                <div className="fixed inset-0 z-50 bg-heist-black flex flex-col">
+                <div className="fixed inset-0 z-50 bg-heist-black/95 backdrop-blur-md flex flex-col animate-slide-up">
                     {/* MOBILE CHAT HEADER */}
-                    <div className="shrink-0 p-4 bg-heist-dark border-b border-heist-grey flex justify-between items-center">
-                        <div className="flex-1">
-                            <div className="text-xs font-mono text-heist-grey uppercase">Phone</div>
-                            <div className="text-lg font-black text-heist-white uppercase">{NODES[selectedNeighbor].label}</div>
-                            <div className="text-[10px] text-heist-grey font-mono">
-                                {gameState.players[Object.keys(gameState.players).find(k => gameState.players[k].nodeId === selectedNeighbor) || '']?.online ? '● ONLINE' : '○ OFFLINE'}
+                    <div className="shrink-0 p-4 bg-white/[0.03] border-b border-white/10 flex justify-between items-center gap-3">
+                        <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-heist-pink to-heist-violet flex items-center justify-center">
+                            <PhoneCall size={18} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-lg font-black text-heist-white uppercase truncate">{NODES[selectedNeighbor].label}</div>
+                            <div className={`text-[10px] font-mono ${selectedPlayer?.online ? 'text-heist-cyan' : 'text-heist-grey'}`}>
+                                {selectedPlayer?.online ? '● ONLINE' : '○ OFFLINE'} · {selectedPlayer?.alias ?? 'VACANT'}
                             </div>
                         </div>
                         <button
@@ -571,7 +651,7 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 markRead(selectedNeighbor);
                                 setShowMobileChat(false);
                             }}
-                            className="p-3 border border-heist-grey hover:border-heist-white hover:bg-heist-grey/20 transition-colors touch-target"
+                            className="p-3 rounded-xl border border-white/15 hover:border-white/40 hover:bg-white/10 transition-colors touch-target"
                         >
                             <X className="text-heist-white" size={24} />
                         </button>
@@ -580,39 +660,21 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                     {/* MOBILE CHAT MESSAGES - with proper scrolling */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
                         {relevantMessages.length === 0 ? (
-                            <div className="flex items-center justify-center h-full text-heist-grey/50 text-sm font-mono uppercase">
+                            <div className="flex flex-col gap-2 items-center justify-center h-full text-heist-grey/60 text-sm font-mono uppercase">
+                                <MessageCircle size={28} strokeWidth={1.5} />
                                 No messages yet
                             </div>
                         ) : (
-                            relevantMessages.map((msg, idx) => {
-                                const isMe = msg.senderId === me.id;
-                                return (
-                                    <div key={`${msg.timestamp}-${idx}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-3 border ${isMe ? 'bg-heist-white text-heist-black border-heist-white' : 'bg-heist-dark text-heist-white border-heist-grey'}`}>
-                                            <p className="text-sm font-bold leading-relaxed break-words">
-                                                {msg.message.startsWith('SYSTEM_TRANSFER|') ? (() => {
-                                                    const [, type, id] = msg.message.split('|');
-                                                    return (
-                                                        <span>
-                                                            <span className={isMe ? 'text-heist-pink' : 'text-green-400'}>{isMe ? '📤 HANDED OVER' : '📥 RECEIVED'}</span>
-                                                            <br />
-                                                            <span className="opacity-75 text-xs">{type} [{id}]</span>
-                                                        </span>
-                                                    );
-                                                })() : msg.message}
-                                            </p>
-                                            <span className="block text-[8px] font-mono mt-1 opacity-50 uppercase">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })
+                            relevantMessages.map((msg, idx) => (
+                                <ChatBubble key={`${msg.timestamp}-${idx}`} msg={msg} isMe={msg.senderId === me.id} compact />
+                            ))
                         )}
                         <div ref={chatEndRef}></div>
                     </div>
 
                     {/* PENDING ATTACHMENT - Mobile */}
                     {pendingAttachment && (
-                        <div className="shrink-0 p-3 bg-heist-dark border-t border-heist-grey flex items-center justify-between">
+                        <div className="shrink-0 mx-4 mb-2 p-3 rounded-xl bg-heist-sun/10 border border-heist-sun/40 flex items-center justify-between animate-slide-up">
                             <div className="flex items-center gap-3">
                                 <span className="text-3xl">{getLootIcon(pendingAttachment.type)}</span>
                                 <div className="text-xs uppercase">
@@ -620,19 +682,19 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                     <span className="font-bold text-heist-white">{pendingAttachment.type}</span>
                                 </div>
                             </div>
-                            <button onClick={() => setPendingAttachment(null)} className="p-2 hover:bg-heist-grey/20 transition-colors touch-target">
+                            <button onClick={() => setPendingAttachment(null)} className="p-2 rounded-lg hover:bg-white/10 transition-colors touch-target">
                                 <X className="text-heist-grey hover:text-heist-white" size={20} />
                             </button>
                         </div>
                     )}
 
                     {/* MOBILE CHAT INPUT */}
-                    <div className="shrink-0 p-4 border-t border-heist-grey bg-heist-black safe-area-bottom">
+                    <div className="shrink-0 p-4 border-t border-white/10 bg-black/30 safe-area-bottom">
                         <div className="flex gap-2 mb-3">
                             <button
                                 onClick={openAttach}
                                 aria-disabled={!selectedCanReceive}
-                                className={`px-4 py-3 border-2 border-heist-grey text-heist-grey transition-colors touch-target flex items-center gap-2 ${selectedCanReceive ? 'hover:bg-heist-grey/20' : 'opacity-30'}`}
+                                className={`px-4 py-3 rounded-xl border border-white/15 text-heist-grey transition-colors touch-target flex items-center gap-2 ${selectedCanReceive ? 'hover:bg-white/10' : 'opacity-30'}`}
                             >
                                 <Paperclip size={18} />
                                 <span className="text-xs font-bold uppercase">Attach</span>
@@ -648,12 +710,12 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                                 placeholder="TYPE MESSAGE..."
-                                className="flex-1 bg-heist-dark border-2 border-heist-grey p-3 text-heist-white placeholder-heist-grey/50 font-mono focus:outline-none focus:border-heist-sun transition-colors text-sm"
+                                className="flex-1 min-w-0 rounded-xl bg-black/40 border border-white/15 p-3 text-heist-white placeholder-heist-grey/50 font-mono focus:outline-none focus:border-heist-sun focus:shadow-[0_0_15px_rgba(255,177,61,0.25)] transition-all text-sm"
                             />
                             <button
                                 onClick={sendMessage}
                                 disabled={!chatInput.trim() && !pendingAttachment}
-                                className="px-6 py-3 border-2 border-heist-sun bg-heist-sun text-heist-black hover:bg-heist-white disabled:opacity-50 disabled:cursor-not-allowed font-black uppercase text-sm transition-colors touch-target"
+                                className="btn-sunset px-5 py-3 text-sm touch-target !tracking-widest"
                             >
                                 SEND
                             </button>
@@ -662,41 +724,60 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                 </div>
             )}
 
-            {/* TOAST NOTIFICATIONS */}
+            {/* TOAST NOTIFICATIONS: slide up and fade in (index.css) */}
             <Toaster
                 position="top-right"
                 toastOptions={{
                     style: {
-                        background: '#160c28',
+                        background: 'rgba(22, 12, 40, 0.88)',
+                        backdropFilter: 'blur(12px)',
                         color: '#fff',
-                        border: '2px solid #ff2d8a',
-                        fontFamily: 'monospace',
-                        fontSize: '14px',
+                        border: '1px solid rgba(255, 45, 138, 0.55)',
+                        borderRadius: '14px',
+                        boxShadow: '0 0 15px rgba(255, 45, 138, 0.35), 0 12px 30px -10px rgba(0, 0, 0, 0.7)',
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '13px',
                         fontWeight: 'bold',
+                        whiteSpace: 'pre-line',
                     },
                     success: {
+                        style: {
+                            border: '1px solid rgba(61, 220, 132, 0.6)',
+                            boxShadow: '0 0 15px rgba(61, 220, 132, 0.3), 0 12px 30px -10px rgba(0, 0, 0, 0.7)',
+                        },
                         iconTheme: {
-                            primary: '#ffb13d',
+                            primary: '#3DDC84',
+                            secondary: '#160c28',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#ff2d8a',
                             secondary: '#160c28',
                         },
                     },
                 }}
-            />
-
-
+            >
+                {(t: Toast) => (
+                    <ToastBar
+                        toast={t}
+                        style={{ animation: t.visible ? TOAST_ENTER : TOAST_EXIT }}
+                    />
+                )}
+            </Toaster>
 
             {/* COMPLETION MODAL */}
             {showCompletionModal && (
-                <div className="fixed inset-0 z-[100] bg-heist-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-500">
-                    <div className="bg-heist-dark border-2 border-heist-sun p-8 max-w-lg w-full shadow-[0_0_50px_rgba(255,45,138,0.35)] text-center relative overflow-hidden">
+                <div className="fixed inset-0 z-[100] bg-heist-black/85 backdrop-blur-md flex items-center justify-center p-6">
+                    <div className="hud-panel border-heist-money/50 p-8 max-w-lg w-full shadow-[0_0_50px_rgba(61,220,132,0.3)] text-center overflow-hidden animate-fade-up">
 
                         {/* Decorative Background Elements */}
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-heist-sun to-transparent"></div>
-                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-heist-sun/10 rounded-full blur-3xl"></div>
-                        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-heist-sun/10 rounded-full blur-3xl"></div>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-heist-money to-transparent"></div>
+                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-heist-money/15 rounded-full blur-3xl"></div>
+                        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-heist-pink/15 rounded-full blur-3xl"></div>
 
                         <div className="relative z-10">
-                            <div className="mb-6 inline-block p-4 rounded-full bg-heist-sun/10 border border-heist-sun/30">
+                            <div className="mb-6 inline-block p-4 rounded-full bg-heist-money/10 border border-heist-money/30 animate-float">
                                 <span className="text-6xl">💰</span>
                             </div>
 
@@ -707,16 +788,16 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 +{me.completionBonus ?? 0} bonus earned. Keep fixing for others.
                             </p>
 
-                            <div className="bg-black/50 border border-heist-grey/50 p-6 mb-8 grid grid-cols-2 gap-4">
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-6 mb-8 grid grid-cols-2 gap-4">
                                 <div>
-                                    <span className="block text-xs text-heist-grey uppercase mb-2">Completion Time</span>
-                                    <span className="text-2xl font-mono text-white font-bold">
+                                    <span className="block hud-label text-heist-grey mb-2">Completion Time</span>
+                                    <span className="text-2xl font-mono tabular text-white font-bold">
                                         {me.completionTime ? new Date(me.completionTime).toLocaleTimeString() : '--:--:--'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-heist-grey uppercase mb-2">Bonus Earned</span>
-                                    <span className="text-2xl font-mono text-heist-sun font-bold">
+                                    <span className="block hud-label text-heist-grey mb-2">Bonus Earned</span>
+                                    <span className="text-2xl font-mono tabular text-heist-money font-bold">
                                         +{me.completionBonus ?? 0}
                                     </span>
                                 </div>
@@ -724,7 +805,7 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
 
                             <button
                                 onClick={() => setDismissedCompletion(me.completionTime)}
-                                className="w-full py-4 bg-heist-sun text-heist-black font-black uppercase text-lg tracking-widest hover:bg-white hover:scale-105 transition-all duration-300 shadow-lg"
+                                className="btn-sunset w-full py-4 text-lg"
                             >
                                 Back to the city
                             </button>
@@ -733,11 +814,25 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                 </div>
             )}
 
-            {/* POLICE RAID FLASH */}
-            {raidFlash && (
-                <div className="fixed inset-0 z-[200] raid-flash flex items-center justify-center pointer-events-none" role="alert">
-                    <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter drop-shadow-[0_6px_0_rgba(0,0,0,0.9)]">
-                        LSPD RAID
+            {/* POLICE RAID: full-screen siren strobe for 3s, then a smooth fade out */}
+            {raidFlash > 0 && (
+                <div key={raidFlash} className="fixed inset-0 z-[200] raid-overlay pointer-events-none flex items-center justify-center overflow-hidden" role="alert">
+                    <div className="absolute inset-0 raid-flash" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.65)_100%)]" />
+                    <div className="absolute inset-x-0 top-0 h-2 overflow-hidden bg-black/40">
+                        <div className="raid-sweep h-full w-1/2 bg-gradient-to-r from-transparent via-white to-transparent" />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 h-2 overflow-hidden bg-black/40">
+                        <div className="raid-sweep h-full w-1/2 bg-gradient-to-r from-transparent via-white to-transparent" />
+                    </div>
+                    <div className="relative text-center px-4 raid-slam">
+                        <Siren className="mx-auto mb-4 w-12 h-12 lg:w-20 lg:h-20 text-white drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]" />
+                        <div className="text-6xl lg:text-9xl font-display text-white drop-shadow-[0_6px_0_rgba(0,0,0,0.9)]">
+                            LSPD RAID
+                        </div>
+                        <div className="mt-4 font-mono text-xs lg:text-sm font-bold uppercase tracking-[0.4em] text-white/90">
+                            Police are seizing loot
+                        </div>
                     </div>
                 </div>
             )}
@@ -747,5 +842,6 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
         </div>
     );
 };
+
 
 export default Dashboard;

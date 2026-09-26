@@ -145,7 +145,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
                         const rect = element.getBoundingClientRect();
                         return (
                             <div
-                                className="absolute border-2 border-heist-sun shadow-[0_0_20px_rgba(255,215,0,0.5)] pointer-events-none"
+                                className="absolute rounded-2xl border-2 border-heist-sun shadow-[0_0_20px_rgba(255,177,61,0.5)] pointer-events-none transition-all duration-300"
                                 style={{
                                     top: rect.top - 4,
                                     left: rect.left - 4,
@@ -161,7 +161,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
             {/* Tutorial Tooltip */}
             <div
                 ref={tooltipRef}
-                className={`fixed z-50 bg-heist-dark border-2 border-heist-sun p-6 shadow-2xl max-h-[calc(100vh-2rem)] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4 bottom-4' : 'w-96 max-w-[calc(100vw-2rem)]'
+                className={`fixed z-50 rounded-2xl bg-heist-dark/90 backdrop-blur-md border border-heist-sun/60 p-6 shadow-hud max-h-[calc(100vh-2rem)] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4 bottom-4' : 'w-96 max-w-[calc(100vw-2rem)]'
                     }`}
             >
                 <div className="flex justify-between items-start mb-4">
@@ -169,13 +169,13 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
                         <h3 className="text-xl font-black uppercase text-heist-sun tracking-wider">
                             {step.title}
                         </h3>
-                        <div className="text-xs text-heist-grey font-mono mt-1">
+                        <div className="text-xs text-heist-grey font-mono tabular mt-1">
                             STEP {currentStep + 1}/{TUTORIAL_STEPS.length}
                         </div>
                     </div>
                     <button
                         onClick={handleSkip}
-                        className="text-heist-grey hover:text-heist-white transition-colors p-2 touch-target"
+                        className="text-heist-grey hover:text-heist-white hover:bg-white/10 rounded-lg transition-colors p-2 touch-target"
                     >
                         <X size={20} />
                     </button>
@@ -194,7 +194,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
                     </button>
                     <button
                         onClick={handleNext}
-                        className="flex items-center gap-2 bg-heist-sun text-heist-black px-6 py-3 font-bold uppercase text-sm hover:bg-heist-white transition-colors touch-target"
+                        className="btn-sunset flex items-center gap-2 px-6 py-3 text-sm !tracking-widest touch-target"
                     >
                         {currentStep < TUTORIAL_STEPS.length - 1 ? 'Next' : 'Finish'}
                         <ArrowRight size={16} />

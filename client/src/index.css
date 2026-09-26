@@ -1,13 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Inter:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Glow around districts a player can hand loot to */
-:root {
-  --glow: rgba(255, 45, 138, 0.55);
-}
 
 @layer base {
   body {
@@ -24,7 +19,22 @@
 }
 
 .glass-panel {
-  @apply bg-heist-dark border border-heist-grey/50 p-4;
+  @apply bg-heist-dark border border-heist-grey/50 p-4 rounded-xl;
+}
+
+/* Floating HUD panel over the sunset skyline */
+.hud-panel {
+  @apply relative rounded-2xl bg-gray-900/60 backdrop-blur-md border border-white/10 shadow-hud;
+}
+
+/* Thin sunset hairline along the top edge of a panel */
+.hud-panel-accent::before {
+  content: '';
+  @apply absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-heist-pink/70 to-transparent;
+}
+
+.hud-label {
+  @apply text-[11px] uppercase tracking-[0.2em] font-bold;
 }
 
 /* LOS SANTOS: dusk sky, sunset glow and a skyline with palms along the bottom */
@@ -54,25 +64,47 @@
   text-shadow: 4px 4px 0 #000;
 }
 
+/* Animated version for big headline gradients (ROUND n) */
+.vi-gradient-animated {
+  background-size: 100% 300%;
+  @apply animate-gradient-shift;
+}
+
 /* TRANSPARENCY UTILITIES */
 .glass-dark {
-  background-color: rgba(10, 5, 20, 0.7);
-  /* Night purple, see-through */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 45, 138, 0.15);
+  @apply rounded-2xl bg-gray-900/60 backdrop-blur-md border border-white/10;
 }
 
 .btn-primary {
-  @apply bg-heist-white text-heist-black font-black uppercase tracking-widest py-3 px-6 hover:bg-heist-light transition-colors rounded-none;
+  @apply bg-heist-white text-heist-black font-black uppercase tracking-widest py-3 px-6 hover:bg-heist-light transition-colors rounded-xl;
 }
 
 .btn-danger {
-  @apply bg-heist-pink text-white font-bold uppercase tracking-widest py-3 px-6 hover:brightness-110 transition-colors rounded-none;
+  @apply bg-heist-pink text-white font-bold uppercase tracking-widest py-3 px-6 hover:brightness-110 transition-colors rounded-xl;
+}
+
+/* Sunset gradient call to action, same stops as the LOS SANTOS lettering */
+.btn-sunset {
+  @apply relative rounded-xl bg-gradient-to-r from-heist-sun via-heist-orange to-heist-pink text-heist-black font-black uppercase tracking-[0.2em]
+    shadow-[0_8px_24px_-8px_rgba(255,45,138,0.6)] transition-all duration-200
+    hover:brightness-110 hover:shadow-[0_12px_32px_-6px_rgba(255,45,138,0.75)] hover:-translate-y-0.5
+    active:translate-y-0 active:brightness-95
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heist-sun focus-visible:ring-offset-2 focus-visible:ring-offset-heist-black
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:brightness-100;
 }
 
 /* MOBILE OPTIMIZATIONS */
 @layer utilities {
+
+  /* Staggered entrance: add .stagger-N next to animate-fade-up */
+  .stagger-1 { animation-delay: 60ms; }
+  .stagger-2 { animation-delay: 140ms; }
+  .stagger-3 { animation-delay: 220ms; }
+  .stagger-4 { animation-delay: 300ms; }
+  .stagger-5 { animation-delay: 380ms; }
+  .stagger-6 { animation-delay: 460ms; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
 
   /* Touch-friendly minimum size */
   .touch-target {
@@ -104,23 +136,77 @@
     overscroll-behavior-y: contain;
   }
 }
-/* POLICE RAID: red/blue siren flash */
-@keyframes raid-flash {
-  0%, 100% { background-color: rgba(255, 30, 60, 0.6); }
-  50% { background-color: rgba(30, 90, 255, 0.6); }
+/* POLICE RAID: 3s of red/blue siren strobe, then a smooth fade out.
+   The overlay stays mounted for RAID_OVERLAY_MS (Dashboard.tsx). */
+@keyframes raid-strobe {
+  0%, 49.9% { background-color: rgba(255, 30, 60, 0.62); }
+  50%, 100% { background-color: rgba(30, 90, 255, 0.62); }
+}
+
+@keyframes raid-lifecycle {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  80% { opacity: 1; }   /* 3.0s of 3.75s */
+  100% { opacity: 0; }
+}
+
+@keyframes raid-slam {
+  0% { opacity: 0; transform: scale(1.8); letter-spacing: 0.3em; }
+  60% { opacity: 1; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); letter-spacing: -0.02em; }
+}
+
+@keyframes raid-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.raid-overlay {
+  animation: raid-lifecycle 3.75s ease-out forwards;
 }
 
 .raid-flash {
-  animation: raid-flash 0.5s steps(1) infinite;
+  animation: raid-strobe 0.3s infinite;
+}
+
+.raid-slam {
+  animation: raid-slam 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.raid-sweep {
+  animation: raid-sweep 0.6s linear infinite;
 }
 
 .raid-banner {
   background: linear-gradient(90deg, #d4143c, #1d4ed8, #d4143c);
 }
 
+/* Toast feed (react-hot-toast, set on ToastBar in Dashboard.tsx):
+   translate-y-4 opacity-0 -> translate-y-0 opacity-100 */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(0.5rem) scale(0.96); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Keep the overlay's timing so it still fades out, but drop the strobe */
+  .raid-overlay {
+    animation: raid-lifecycle 3.75s ease-out forwards !important;
+  }
+
   .raid-flash {
-    animation: none;
+    animation: none !important;
     background-color: rgba(30, 60, 200, 0.6);
   }
 }

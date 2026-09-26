@@ -99,7 +99,7 @@ function App() {
 
     if (!isConnected) {
         return (
-            <div className="h-screen city-bg flex items-center justify-center text-heist-light font-display tracking-wide animate-pulse">
+            <div className="h-screen city-bg flex items-center justify-center text-heist-light font-mono font-bold tracking-[0.3em] animate-pulse">
                 CONNECTING TO LOS SANTOS...
             </div>
         );
