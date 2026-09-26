@@ -41,7 +41,7 @@ const CityMap: React.FC<CityMapProps> = ({ gameState, me, selected, unreadCounts
                             key={`${a}-${b}`}
                             x1={NODE_POSITIONS[a].x} y1={NODE_POSITIONS[a].y}
                             x2={NODE_POSITIONS[b].x} y2={NODE_POSITIONS[b].y}
-                            className={mine ? 'stroke-myth-gold' : 'stroke-myth-grey/40'}
+                            className={mine ? 'stroke-heist-sun' : 'stroke-heist-grey/40'}
                             strokeWidth={mine ? 5 : 3}
                             strokeLinecap="round"
                             strokeDasharray={mine ? undefined : '10 8'}
@@ -59,12 +59,12 @@ const CityMap: React.FC<CityMapProps> = ({ gameState, me, selected, unreadCounts
                 const unread = unreadCounts[node.id] ?? 0;
 
                 const tone = isMine
-                    ? 'bg-myth-gold text-myth-black border-myth-gold'
+                    ? 'bg-heist-sun text-heist-black border-heist-sun'
                     : isSelected
-                        ? 'bg-myth-white text-myth-black border-myth-white'
+                        ? 'bg-heist-white text-heist-black border-heist-white'
                         : deliverable
-                            ? 'bg-myth-black/85 text-myth-white border-myth-red shadow-[0_0_14px_var(--glow)]'
-                            : 'bg-myth-black/70 text-myth-grey border-myth-grey/40 opacity-70 hover:opacity-100';
+                            ? 'bg-heist-black/85 text-heist-white border-heist-pink shadow-[0_0_14px_var(--glow)]'
+                            : 'bg-heist-black/70 text-heist-grey border-heist-grey/40 opacity-70 hover:opacity-100';
 
                 return (
                     <button
@@ -76,10 +76,10 @@ const CityMap: React.FC<CityMapProps> = ({ gameState, me, selected, unreadCounts
                         onDrop={(e) => onDropToken(e, node.id)}
                         aria-pressed={isSelected}
                         aria-label={`${node.label}${occupant ? `, ${occupant.alias}` : ', vacant'}${deliverable ? ', deliverable' : ''}${unread ? `, ${unread} unread` : ''}`}
-                        className={`absolute -translate-x-1/2 -translate-y-1/2 w-[17%] min-h-[2.75rem] px-1 py-1 border-2 rounded-md flex flex-col items-center justify-center leading-tight transition-all disabled:cursor-default enabled:hover:scale-105 ${tone} ${isSelected && !isMine ? 'ring-2 ring-offset-2 ring-offset-myth-black ring-myth-white' : ''}`}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 min-w-[13%] max-w-[20%] min-h-[2.75rem] px-1 py-1 border-2 rounded-md flex flex-col items-center justify-center leading-tight transition-all disabled:cursor-default enabled:hover:scale-105 ${tone} ${isSelected && !isMine ? 'ring-2 ring-offset-2 ring-offset-heist-black ring-heist-white' : ''}`}
                         style={{ left: pct(pos.x, MAP_WIDTH), top: pct(pos.y, MAP_HEIGHT) }}
                     >
-                        <span className="font-serif text-[9px] sm:text-[11px] lg:text-xs uppercase break-words text-center">
+                        <span className="font-black text-[8px] sm:text-[11px] lg:text-xs uppercase break-words text-center tracking-tight sm:tracking-normal">
                             {node.label}
                         </span>
                         <span className="hidden sm:block text-[8px] lg:text-[9px] font-mono opacity-70">
@@ -87,10 +87,10 @@ const CityMap: React.FC<CityMapProps> = ({ gameState, me, selected, unreadCounts
                         </span>
 
                         {occupant?.online && !isMine && (
-                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_cyan]" />
+                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-heist-teal shadow-[0_0_6px_#1ee3cf]" />
                         )}
                         {unread > 0 && (
-                            <span className="absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                            <span className="absolute -top-2 -left-2 bg-heist-pink text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
                                 {unread}
                             </span>
                         )}

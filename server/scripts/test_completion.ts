@@ -72,7 +72,7 @@ async function testCompletion() {
 
     // Determine needed items
     const needed: string[] = [];
-    for (const type of ['Trishula', 'Gandiva', 'Vajra', 'Brahmastra']) {
+    for (const type of ['Cash', 'Artwork', 'Gold', 'Diamonds']) {
         const count = contract[type] || 0;
         const have = currentInv[type] || 0;
         const diff = count - have;
@@ -129,7 +129,7 @@ async function testCompletion() {
 }
 
 function getInventoryCounts(inventory: any[]) {
-    const counts: any = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+    const counts: any = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
     inventory.forEach((t: any) => counts[t.type] = (counts[t.type] || 0) + 1);
     return counts;
 }

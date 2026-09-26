@@ -26,22 +26,22 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
     };
 
     return (
-        <div className="min-h-screen lokah-bg flex items-center justify-center p-4">
-            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-0 border border-myth-grey/40">
+        <div className="min-h-screen city-bg flex items-center justify-center p-4">
+            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-0 border border-heist-grey/40">
 
                 {/* BRANDING */}
-                <div className="glass-dark p-12 flex flex-col justify-center border-b md:border-b-0 md:border-r border-myth-grey/40">
-                    <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-none mb-6 text-myth-white">
-                        SCARCITY
-                        <span className="block h-4 w-32 bg-myth-red mt-4"></span>
+                <div className="glass-dark p-12 flex flex-col justify-center border-b md:border-b-0 md:border-r border-heist-grey/40">
+                    <h1 className="text-6xl lg:text-8xl font-display tracking-tight leading-[0.9] mb-6 vi-gradient">
+                        LOS<br />SANTOS
                     </h1>
-                    <div className="space-y-2 text-myth-grey font-mono text-sm uppercase tracking-widest">
-                        <p>PROTOCOL INITIATED.</p>
-                        <p>RESOURCE SCARCITY: CRITICAL.</p>
-                        <p>TRUST IS YOUR ONLY CURRENCY.</p>
+                    <span className="block h-2 w-32 bg-gradient-to-r from-heist-sun via-heist-pink to-heist-violet mb-6"></span>
+                    <div className="space-y-2 text-heist-light font-mono text-sm uppercase tracking-widest">
+                        <p>THE CITY IS OPEN.</p>
+                        <p>PLAN THE JOB. MOVE THE LOOT.</p>
+                        <p className="text-heist-pink">EVERY MINUTE COSTS YOU.</p>
                     </div>
-                    <div className="mt-24 text-[10px] text-myth-grey/30 font-mono">
-                        SYS.VER.2.0.4 // MYTH_CORE
+                    <div className="mt-24 text-[10px] text-heist-grey/60 font-mono">
+                        GRAND MANAGER // LOS SANTOS
                     </div>
                 </div>
 
@@ -49,18 +49,18 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
                 <div className="glass-dark p-12 flex flex-col justify-center items-center">
                     <form onSubmit={joinGame} className="w-full max-w-sm space-y-8">
                         <div className="space-y-2">
-                            <label htmlFor="alias-input" className="block text-xs font-bold text-myth-white uppercase tracking-widest mb-2">
-                                Identity Verification
+                            <label htmlFor="alias-input" className="block text-xs font-bold text-heist-white uppercase tracking-widest mb-2">
+                                Crew ID
                             </label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-myth-grey animate-pulse">|</span>
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-heist-grey animate-pulse">|</span>
                                 <input
                                     id="alias-input"
                                     type="text"
                                     value={alias}
                                     onChange={(e) => setAlias(e.target.value)}
                                     placeholder="TT_BM_X"
-                                    className="w-full bg-myth-black border border-myth-grey p-4 pl-8 text-myth-white font-mono placeholder-myth-grey/30 focus:border-myth-red focus:outline-none transition-colors"
+                                    className="w-full bg-heist-black border border-heist-grey p-4 pl-8 text-heist-white font-mono placeholder-heist-grey/30 focus:border-heist-pink focus:outline-none transition-colors"
                                     autoFocus
                                 />
                             </div>
@@ -68,13 +68,13 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
 
                         {alias.toLowerCase() === 'admin' && (
                             <div className="space-y-2 animate-fade-in">
-                                <label htmlFor="password-input" className="block text-xs font-bold uppercase tracking-widest text-myth-red mb-2">
+                                <label htmlFor="password-input" className="block text-xs font-bold uppercase tracking-widest text-heist-pink mb-2">
                                     Security Clearance
                                 </label>
                                 <input
                                     id="password-input"
                                     type="password"
-                                    className="w-full bg-myth-black border-2 border-myth-red p-4 text-xl font-bold text-myth-white placeholder-red-900 focus:outline-none focus:border-myth-red transition-colors rounded-none"
+                                    className="w-full bg-heist-black border-2 border-heist-pink p-4 text-xl font-bold text-heist-white placeholder-red-900 focus:outline-none focus:border-heist-pink transition-colors rounded-none"
                                     placeholder="PASSWORD"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -83,7 +83,7 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
                         )}
 
                         {error && (
-                            <div className="bg-myth-red p-4 text-white font-bold text-xs uppercase tracking-widest text-center">
+                            <div className="bg-heist-pink p-4 text-white font-bold text-xs uppercase tracking-widest text-center">
                                 ERROR: {error}
                             </div>
                         )}
@@ -91,14 +91,14 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
                         <button
                             type="submit"
                             disabled={!alias.trim()}
-                            className="w-full bg-myth-white text-myth-black font-black uppercase tracking-widest py-4 hover:bg-myth-grey transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-heist-pink text-white font-display text-lg uppercase tracking-wide py-4 hover:bg-heist-sun hover:text-heist-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            ENTER LOKAH
+                            START THE JOB
                         </button>
                     </form>
 
-                    <div className="lg:hidden text-center mt-8 text-xs font-mono text-myth-grey/50">
-                        SYS.VER.2.0.4 // MYTH_CORE
+                    <div className="lg:hidden text-center mt-8 text-xs font-mono text-heist-grey/60">
+                        GRAND MANAGER // LOS SANTOS
                     </div>
                 </div>
             </div>

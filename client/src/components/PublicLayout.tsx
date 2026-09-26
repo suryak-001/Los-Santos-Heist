@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Trophy, Gem, Activity, Box, Volume2, VolumeX } from 'lucide-react';
+import { Trophy, Activity, Box, Volume2, VolumeX } from 'lucide-react';
 import type { GameState } from '../types/game';
 import { formatDistricts } from '../topology';
 
@@ -108,18 +108,18 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ gameState, children, active
     };
 
     return (
-        <div className={`min-h-screen bg-[#050505] text-white font-sans selection:bg-red-500 selection:text-white flex flex-col transition-colors duration-500 ${isCrisis ? 'animate-pulse bg-red-950/20' : ''}`}>
+        <div className={`min-h-screen city-bg text-white font-sans selection:bg-heist-pink selection:text-white flex flex-col transition-colors duration-500 ${isCrisis ? 'animate-pulse' : ''}`}>
             {/* GLOBAL HEADER */}
-            <header className="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50">
+            <header className="border-b border-heist-pink/30 bg-heist-black/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between relative">
 
                     {/* TITLE (LEFT) */}
                     <div className="flex-shrink-0 flex flex-col justify-center cursor-pointer" onClick={() => onNavigate('/hub')}>
-                        <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-400 to-yellow-600 tracking-tighter leading-none" style={{ fontFamily: 'Impact, sans-serif' }}>
-                            LOKAH DOMINION
+                        <h1 className="text-2xl md:text-3xl font-display vi-gradient tracking-tight leading-none">
+                            LOS SANTOS
                         </h1>
-                        <div className="text-[10px] md:text-xs text-red-500 tracking-[0.3em] font-bold uppercase">
-                            RULE YOUR REALM
+                        <div className="text-[10px] md:text-xs text-heist-pink tracking-[0.3em] font-bold uppercase">
+                            PLAN THE JOB
                         </div>
                     </div>
 
@@ -128,23 +128,20 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ gameState, children, active
                         {/* Audio Toggle */}
                         <button
                             onClick={toggleAudio}
-                            className={`p-2 rounded-full transition-all duration-300 ${isAudioEnabled ? 'text-yellow-500 bg-yellow-500/10' : 'text-gray-500 bg-white/5 hover:bg-white/10'}`}
+                            className={`p-2 rounded-full transition-all duration-300 ${isAudioEnabled ? 'text-heist-sun bg-heist-sun/10' : 'text-gray-500 bg-white/5 hover:bg-white/10'}`}
                             title={isAudioEnabled ? "Disable Audio" : "Enable Audio"}
                         >
                             {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                         </button>
 
                         <nav className="flex items-center gap-1 md:gap-2 border-l border-white/10 pl-4">
-                            <a href="/hub" onClick={(e) => handleLinkClick(e, '/hub')} className={`hidden md:flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'hub' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                            <a href="/hub" onClick={(e) => handleLinkClick(e, '/hub')} className={`hidden md:flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'hub' ? 'bg-heist-pink text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
                                 <Box size={14} /> <span className="hidden lg:inline">Hub</span>
                             </a>
-                            <a href="/leaderboard" onClick={(e) => handleLinkClick(e, '/leaderboard')} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'leaderboard' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                            <a href="/leaderboard" onClick={(e) => handleLinkClick(e, '/leaderboard')} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'leaderboard' ? 'bg-heist-pink text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
                                 <Trophy size={14} /> <span className="hidden lg:inline">Leaderboard</span>
                             </a>
-                            <a href="/lottery" onClick={(e) => handleLinkClick(e, '/lottery')} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'lottery' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                                <Gem size={14} /> <span className="hidden lg:inline">Lottery</span>
-                            </a>
-                            <a href="/timer" onClick={(e) => handleLinkClick(e, '/timer')} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'timer' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                            <a href="/timer" onClick={(e) => handleLinkClick(e, '/timer')} className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold uppercase transition-colors ${activeTab === 'timer' ? 'bg-heist-pink text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
                                 <Activity size={14} /> <span className="hidden lg:inline">Timer</span>
                             </a>
                         </nav>

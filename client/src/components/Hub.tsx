@@ -15,37 +15,29 @@ const Hub: React.FC<HubProps> = ({ onNavigate }) => {
     return (
         <div className="min-h-full flex flex-col items-center justify-center py-20 text-center space-y-8">
             <div className="space-y-2">
-                <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-400 to-yellow-600 tracking-tighter" style={{ fontFamily: 'Impact, sans-serif' }}>
-                    LOKAH DOMINION
+                <h1 className="text-5xl md:text-7xl font-display vi-gradient tracking-tight">
+                    LOS SANTOS
                 </h1>
-                <p className="text-gray-500 font-mono text-xs uppercase tracking-[0.5em]">
+                <p className="text-heist-light/70 font-mono text-xs uppercase tracking-[0.5em]">
                     PUBLIC ACCESS TERMINAL
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full px-8">
-                <a href="/leaderboard" onClick={(e) => handleLinkClick(e, '/leaderboard')} className="group p-8 border border-white/10 bg-black/40 hover:bg-white/5 hover:border-yellow-500/50 transition-all rounded flex flex-col items-center gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full px-8">
+                <a href="/leaderboard" onClick={(e) => handleLinkClick(e, '/leaderboard')} className="group p-8 border border-white/10 bg-black/40 hover:bg-white/5 hover:border-heist-sun/60 transition-all rounded flex flex-col items-center gap-4">
                     <div className="p-4 bg-yellow-500/10 rounded-full group-hover:scale-110 transition-transform">
                         <span className="text-2xl">🏆</span>
                     </div>
-                    <h2 className="text-xl font-bold text-white tracking-widest group-hover:text-yellow-400">LEADERBOARD</h2>
-                    <p className="text-xs text-gray-500 font-mono">View current rankings and status</p>
+                    <h2 className="text-xl font-bold text-white tracking-widest group-hover:text-heist-sun">LEADERBOARD</h2>
+                    <p className="text-xs text-gray-400 font-mono">View current rankings and status</p>
                 </a>
 
-                <a href="/lottery" onClick={(e) => handleLinkClick(e, '/lottery')} className="group p-8 border border-white/10 bg-black/40 hover:bg-white/5 hover:border-red-500/50 transition-all rounded flex flex-col items-center gap-4">
-                    <div className="p-4 bg-red-500/10 rounded-full group-hover:scale-110 transition-transform">
-                        <span className="text-2xl">💎</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-white tracking-widest group-hover:text-red-400">LOTTERY</h2>
-                    <p className="text-xs text-gray-500 font-mono">The Sacrifice ritual status</p>
-                </a>
-
-                <a href="/timer" onClick={(e) => handleLinkClick(e, '/timer')} className="group p-8 border border-white/10 bg-black/40 hover:bg-white/5 hover:border-green-500/50 transition-all rounded flex flex-col items-center gap-4">
+                <a href="/timer" onClick={(e) => handleLinkClick(e, '/timer')} className="group p-8 border border-white/10 bg-black/40 hover:bg-white/5 hover:border-heist-pink/60 transition-all rounded flex flex-col items-center gap-4">
                     <div className="p-4 bg-green-500/10 rounded-full group-hover:scale-110 transition-transform">
                         <span className="text-2xl">⏱</span>
                     </div>
-                    <h2 className="text-xl font-bold text-white tracking-widest group-hover:text-green-400">TIMER</h2>
-                    <p className="text-xs text-gray-500 font-mono">Doomsday Clock display</p>
+                    <h2 className="text-xl font-bold text-white tracking-widest group-hover:text-heist-pink">TIMER</h2>
+                    <p className="text-xs text-gray-400 font-mono">Heist Clock display</p>
                 </a>
             </div>
 

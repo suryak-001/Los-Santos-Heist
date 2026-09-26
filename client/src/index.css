@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Inter:wght@400;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,87 +6,69 @@
 
 /* Glow around districts a player can hand loot to */
 :root {
-  --glow: rgba(255, 51, 51, 0.45);
+  --glow: rgba(255, 45, 138, 0.55);
 }
 
 @layer base {
   body {
-    @apply bg-myth-black text-myth-white font-sans antialiased selection:bg-myth-red selection:text-white;
+    @apply bg-heist-black text-heist-white font-sans antialiased selection:bg-heist-pink selection:text-white;
   }
 }
 
 .swiss-grid {
-  @apply grid grid-cols-12 gap-px bg-myth-grey border border-myth-grey;
+  @apply grid grid-cols-12 gap-px bg-heist-grey/30 border border-heist-grey/40;
 }
 
 .swiss-cell {
-  @apply bg-myth-black p-4 relative overflow-hidden;
+  @apply bg-heist-black p-4 relative overflow-hidden;
 }
 
 .glass-panel {
-  @apply bg-myth-dark border border-myth-grey/50 p-4;
+  @apply bg-heist-dark border border-heist-grey/50 p-4;
 }
 
-/* LOKAH THEME: Background Texture */
-/* LOKAH THEME: Background Texture & Moon Glow */
-.lokah-bg {
-  background-color: #020202;
+/* LOS SANTOS: dusk sky, sunset glow and a skyline with palms along the bottom */
+.city-bg {
+  background-color: #0a0514;
   background-image:
-    /* THE MOON DISK (Top Right) - Bright and Spooky */
-    radial-gradient(circle at 85% 15%, rgba(255, 255, 240, 0.95) 0%, rgba(255, 255, 240, 0.8) 2%, transparent 2.5%),
-    /* MOON GLOW - Large and Hazy */
-    radial-gradient(circle at 85% 15%, rgba(200, 200, 255, 0.15) 0%, transparent 60%),
-    /* STARS (Small white dots scattered) */
-    radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 3px),
-    radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 2px),
-    radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 3px);
-  background-size: 100% 100%, 100% 100%, 550px 550px, 350px 350px, 250px 250px;
-  background-position: 0 0, 0 0, 0 0, 40px 60px, 130px 270px;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 220' preserveAspectRatio='none'%3E%3Cg fill='%2307030d'%3E%3Cpath d='M0 220V150h40v-30h30v40h25V95h45v65h20v-40h35v100h30V70h18V50h14v20h18v150h25v-80h40v-35h30v115h22V110h50v110h20v-60h35V85h28v-25h20v25h28v160h30v-90h45v90h20V120h38v-40h24v40h30v100h25v-70h40v70h30V60h16V35h12v25h16v160h28v-95h42v95h24v-55h36v55h30V100h44v120h26v-70h34v70h40v-45h40v45z'/%3E%3Cpath d='M300 220c2-40 6-75 16-105l4 1c-9 30-12 65-13 104z'/%3E%3Cpath d='M318 112c-18-10-40-8-56 4 18-4 36-2 52 8zm2 0c10-16 30-24 50-20-18 2-34 10-46 24zm-2 2c-6-18-22-30-42-32 16 6 28 18 34 34zm4-2c20-6 42 0 56 16-16-8-34-12-52-10z'/%3E%3Cpath d='M905 220c1-50 4-90 12-125l4 1c-7 34-9 74-10 124z'/%3E%3Cpath d='M919 92c-18-10-40-8-56 4 18-4 36-2 52 8zm2 0c10-16 30-24 50-20-18 2-34 10-46 24zm-2 2c-6-18-22-30-42-32 16 6 28 18 34 34zm4-2c20-6 42 0 56 16-16-8-34-12-52-10z'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 70% 45% at 50% 100%, rgba(255, 138, 61, 0.45), transparent 70%),
+    linear-gradient(180deg, #0a0514 0%, #1a0b33 38%, #3d1250 62%, #8a2560 82%, #ff6a3d 100%);
+  background-repeat: repeat-x, no-repeat, no-repeat;
+  background-size: 1200px 160px, 100% 100%, 100% 100%;
+  background-position: bottom center, bottom center, 0 0;
   background-attachment: fixed;
+}
+
+/* GTA 6 logo style: sunset gradient lettering with a hard black shadow */
+.vi-gradient {
+  background-image: linear-gradient(180deg, #ffd36b 0%, #ff8a3d 38%, #ff2d8a 70%, #8c3cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(4px 4px 0 #000);
+}
+
+/* Bold black drop shadow for headers (replaces the old glitch effect) */
+.heist-title {
+  text-shadow: 4px 4px 0 #000;
 }
 
 /* TRANSPARENCY UTILITIES */
 .glass-dark {
-  background-color: rgba(0, 0, 0, 0.6);
-  /* Darker transparent black */
+  background-color: rgba(10, 5, 20, 0.7);
+  /* Night purple, see-through */
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(100, 100, 100, 0.2);
-}
-
-/* GLITCH EFFECT FOR HEADERS */
-@keyframes glitch {
-  0% {
-    transform: translate(0);
-  }
-
-  20% {
-    transform: translate(-2px, 2px);
-  }
-
-  40% {
-    transform: translate(-2px, -2px);
-  }
-
-  60% {
-    transform: translate(2px, 2px);
-  }
-
-  80% {
-    transform: translate(2px, -2px);
-  }
-
-  100% {
-    transform: translate(0);
-  }
+  border: 1px solid rgba(255, 45, 138, 0.15);
 }
 
 .btn-primary {
-  @apply bg-myth-white text-myth-black font-black uppercase tracking-widest py-3 px-6 hover:bg-myth-light transition-colors rounded-none;
+  @apply bg-heist-white text-heist-black font-black uppercase tracking-widest py-3 px-6 hover:bg-heist-light transition-colors rounded-none;
 }
 
 .btn-danger {
-  @apply bg-myth-red text-white font-bold uppercase tracking-widest py-3 px-6 hover:bg-red-600 transition-colors rounded-none;
+  @apply bg-heist-pink text-white font-bold uppercase tracking-widest py-3 px-6 hover:brightness-110 transition-colors rounded-none;
 }
 
 /* MOBILE OPTIMIZATIONS */

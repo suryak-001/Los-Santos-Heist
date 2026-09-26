@@ -94,8 +94,8 @@ function App() {
 
     if (!isConnected) {
         return (
-            <div className="h-screen flex items-center justify-center text-myth-grey animate-pulse">
-                CONNECTING TO NODE SERVER...
+            <div className="h-screen city-bg flex items-center justify-center text-heist-light font-display tracking-wide animate-pulse">
+                CONNECTING TO LOS SANTOS...
             </div>
         );
     }
@@ -103,7 +103,7 @@ function App() {
     // 0. Standalone Leaderboard (No Navigation)
     if (path === '/lead') {
         return (
-            <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-red-500 selection:text-white overflow-auto">
+            <div className="min-h-screen city-bg text-white font-sans selection:bg-heist-pink selection:text-white overflow-auto">
                 <Leaderboard socket={socket} />
             </div>
         );

@@ -55,17 +55,16 @@ const Timer: React.FC<TimerProps> = ({ gameState }) => {
         <div className="min-h-full flex flex-col items-center justify-center relative overflow-hidden py-12">
             {/* BACKGROUND EFFECTS */}
             <div className="absolute inset-0 opacity-20 pointer-events-none"
-                style={{ backgroundImage: 'radial-gradient(circle at center, #332200 0%, #000000 70%)' }}></div>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
+                style={{ backgroundImage: 'radial-gradient(circle at center, #3d1250 0%, transparent 70%)' }}></div>
 
             {/* TIMER DISPLAY */}
             <div className="z-10 relative">
                 <div className={`border-4 py-16 px-16 min-w-[300px] md:min-w-[400px] text-center bg-black/50 backdrop-blur-sm transition-all duration-300 ${isExpired
                     ? 'border-red-600 shadow-[0_0_50px_rgba(255,0,0,0.8)] animate-pulse'
                     : gameState.timer.isRunning
-                        ? 'border-yellow-500 shadow-[0_0_30px_rgba(255,215,0,0.3)]'
+                        ? 'border-heist-pink shadow-[0_0_40px_rgba(255,45,138,0.45)]'
                         : gameState?.timer?.remainingWhenPaused
-                            ? 'border-yellow-500/50'
+                            ? 'border-heist-sun/60'
                             : 'border-gray-500/20'
                     }`}>
                     {/* TIME */}
@@ -100,8 +99,8 @@ const Timer: React.FC<TimerProps> = ({ gameState }) => {
             </div>
 
             {/* FOOTER */}
-            <div className="absolute bottom-12 text-[10px] text-gray-500/30 font-mono tracking-widest">
-                LOKAH TIMER // VER.1.0.0
+            <div className="absolute bottom-12 text-[10px] text-heist-light/50 font-mono tracking-widest">
+                HEIST CLOCK
             </div>
         </div>
     );

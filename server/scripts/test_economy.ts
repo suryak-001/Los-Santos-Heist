@@ -78,8 +78,8 @@ async function testEconomy() {
     let totalSupply = 0;
 
     // Check Needs vs Haves
-    const totalNeeds: Record<string, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
-    const totalHaves: Record<string, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+    const totalNeeds: Record<string, number> = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
+    const totalHaves: Record<string, number> = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
 
     players.forEach((p: any) => {
         const count = p.inventory.length;
@@ -107,7 +107,7 @@ async function testEconomy() {
     console.log(`Total Supply: ${totalSupply}`);
 
     // Check Solvability
-    for (const type of ['Trishula', 'Gandiva', 'Vajra', 'Brahmastra']) {
+    for (const type of ['Cash', 'Artwork', 'Gold', 'Diamonds']) {
         if (totalHaves[type] < totalNeeds[type]) {
             console.error(`FAILURE LIMIT: ${type} - Need ${totalNeeds[type]}, Have ${totalHaves[type]}`);
             solvable = false;

@@ -1,4 +1,4 @@
-export type ResourceType = 'Trishula' | 'Gandiva' | 'Vajra' | 'Brahmastra';
+export type ResourceType = 'Cash' | 'Artwork' | 'Gold' | 'Diamonds';
 
 export interface ResourceToken {
   id: string; // e.g., 'Alpha-101'

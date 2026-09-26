@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 // Tests point this elsewhere so they don't overwrite the saved game
 const STATE_PATH = process.env.GAME_STATE_PATH || path.join(__dirname, '../gameState.json');
-const RESOURCE_TYPES: ResourceType[] = ['Trishula', 'Gandiva', 'Vajra', 'Brahmastra'];
+const RESOURCE_TYPES: ResourceType[] = ['Cash', 'Artwork', 'Gold', 'Diamonds'];
 const RAID_TARGETS = 3;
 const NO_RAID = (): RaidState => ({ done: false, time: null, districts: [], seized: [] });
 
@@ -130,7 +130,7 @@ export class GameManager {
             const admin: Player = {
                 id, alias: 'admin', nodeId: null,
                 inventory: [],
-                contract: { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 },
+                contract: { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 },
                 score: 0,
                 isReady: false,
                 online: true,
@@ -171,7 +171,7 @@ export class GameManager {
             alias: alias.toUpperCase(),
             nodeId,
             inventory: [],
-            contract: { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 },
+            contract: { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 },
             score: 0,
             isReady: false,
             online: true,
@@ -347,7 +347,7 @@ export class GameManager {
                 name: p.alias,
                 rank: 0,
                 score: p.score,
-                country: `Node ${p.nodeId || '?'}`,
+                country: NODES[p.nodeId!].label,
                 status: p.completionTime ? 'COMPLETED' : 'ACTIVE'
             }));
 
@@ -407,7 +407,7 @@ export class GameManager {
 
         Object.values(this.state.players).forEach(p => {
             p.inventory = [];
-            p.contract = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+            p.contract = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
             p.score = 0;
             p.isReady = false;
             p.completionTime = null;
@@ -517,7 +517,7 @@ export class GameManager {
     private exposedItems(player: Player): ResourceToken[] {
         if (!this.isContractComplete(player)) return [...player.inventory];
         // Keep the first `needed` of each type locked in the heist; the rest are exposed
-        const kept: Record<ResourceType, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+        const kept: Record<ResourceType, number> = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
         return player.inventory.filter(t => ++kept[t.type] > player.contract[t.type]);
     }
 
@@ -669,7 +669,7 @@ export class GameManager {
         players.forEach(p => {
             // Reset state
             p.inventory = [];
-            p.contract = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+            p.contract = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
             p.score = 0;
             p.completionTime = null;
             p.completionBonus = null;
@@ -846,7 +846,7 @@ export class GameManager {
 
     public calculateScore(p: Player): number {
         let score = 0;
-        const currentInventoryCounts: Record<ResourceType, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+        const currentInventoryCounts: Record<ResourceType, number> = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
         p.inventory.forEach(token => {
             currentInventoryCounts[token.type]++;
         });
@@ -951,7 +951,7 @@ export class GameManager {
 
     private isContractComplete(player: Player): boolean {
         const counts: Record<ResourceType, number> = {
-            Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0
+            Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0
         };
         player.inventory.forEach(t => counts[t.type]++);
 

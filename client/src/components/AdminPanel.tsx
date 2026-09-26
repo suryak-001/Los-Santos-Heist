@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Draggable from 'react-draggable';
 import { Socket } from 'socket.io-client';
 import type { GameState, NodeId } from '../types/game';
-import { NODES, NODE_POSITIONS } from '../topology';
+import { NODES, NODE_POSITIONS, districtName } from '../topology';
 import { Play, Users, GripHorizontal, FileText, Activity, Trophy, Gem, BarChart3, Trash2, RotateCcw } from 'lucide-react';
 import AdminLeaderboard from './AdminLeaderboard';
 import AdminStats from './AdminStats';
@@ -27,27 +27,21 @@ const NODE_COLORS: Record<string, string> = {
 const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
     const getResourceColor = (type: string) => {
         switch (type) {
-            case 'Trishula': return '#ef4444';   // Red
-            case 'Gandiva': return '#eab308';    // Yellow
-            case 'Vajra': return '#22d3ee';      // Cyan
-            case 'Brahmastra': return '#a855f7'; // Purple
-            case 'Alpha': return '#ef4444';
-            case 'Beta': return '#3b82f6';
-            case 'Gamma': return '#22c55e';
-            default: return '#eab308';
+            case 'Cash': return '#3DDC84';     // Green
+            case 'Artwork': return '#A855F7';  // Purple
+            case 'Gold': return '#FFD400';     // Yellow
+            case 'Diamonds': return '#22D3EE'; // Cyan
+            default: return '#9ca3af';
         }
     };
 
     const getResourceBadgeClass = (type: string) => {
         switch (type) {
-            case 'Trishula': return 'bg-red-500 text-white';
-            case 'Gandiva': return 'bg-yellow-500 text-black';
-            case 'Vajra': return 'bg-cyan-400 text-black';
-            case 'Brahmastra': return 'bg-purple-500 text-white';
-            case 'Alpha': return 'bg-red-900/50 text-red-200';
-            case 'Beta': return 'bg-blue-900/50 text-blue-200';
-            case 'Gamma': return 'bg-green-900/50 text-green-200';
-            default: return 'bg-yellow-900/50 text-yellow-200';
+            case 'Cash': return 'bg-[#3DDC84] text-black';
+            case 'Artwork': return 'bg-[#A855F7] text-white';
+            case 'Gold': return 'bg-[#FFD400] text-black';
+            case 'Diamonds': return 'bg-[#22D3EE] text-black';
+            default: return 'bg-gray-700 text-gray-200';
         }
     };
 
@@ -114,7 +108,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
             <div className="absolute inset-0 bg-red-900/5 pointer-events-none"></div>
 
             <div className="text-center z-10">
-                <div className="text-gray-500 font-mono text-xs uppercase tracking-[0.5em] mb-2">DOOMSDAY CLOCK</div>
+                <div className="text-gray-500 font-mono text-xs uppercase tracking-[0.5em] mb-2">HEIST CLOCK</div>
                 <div className={`text-6xl md:text-8xl font-black font-mono tracking-widest ${gameState.timer.isRunning ? 'text-white animate-pulse' : 'text-red-500'}`}>
                     {(() => {
                         const now = Date.now();
@@ -326,7 +320,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                     </div>
 
                     <div className="text-gray-500 font-mono text-xs uppercase tracking-widest">
-                        STATUS: {gameState.lottery?.isRolling ? <span className="text-red-500 animate-pulse">RITUAL IN PROGRESS</span> : "IDLE"}
+                        STATUS: {gameState.lottery?.isRolling ? <span className="text-red-500 animate-pulse">ROLLING</span> : "IDLE"}
                     </div>
 
                     <div className="text-4xl font-black text-white">
@@ -421,30 +415,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center glass-panel p-4 mb-4 gap-4 bg-black/80 backdrop-blur">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-baseline gap-4">
-                        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-400 to-yellow-600 tracking-tighter leading-none" style={{ fontFamily: 'Impact, sans-serif' }}>
-                            LOKAH DOMINION
+                        <h1 className="text-3xl font-display vi-gradient tracking-tight leading-none">
+                            LOS SANTOS
                         </h1>
-                        <span className="text-[10px] text-red-500 tracking-[0.3em] font-bold uppercase">ADMIN_CONSOLE</span>
+                        <span className="text-[10px] text-heist-pink tracking-[0.3em] font-bold uppercase">ADMIN_CONSOLE</span>
                     </div>
 
                     {/* NAVIGATION TABS - ALIGNED UNDER TITLE */}
                     <div className="flex flex-wrap gap-2">
-                        <button onClick={() => setActiveTab('map')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'map' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('map')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'map' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Activity size={12} className="inline mr-2" /> Live Map
                         </button>
-                        <button onClick={() => setActiveTab('logs')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'logs' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('logs')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'logs' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <FileText size={12} className="inline mr-2" /> Logs
                         </button>
-                        <button onClick={() => setActiveTab('stats')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'stats' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('stats')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'stats' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <BarChart3 size={12} className="inline mr-2" /> Stats
                         </button>
-                        <button onClick={() => setActiveTab('leaderboard')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'leaderboard' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('leaderboard')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'leaderboard' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Trophy size={12} className="inline mr-2" /> Leaderboard
                         </button>
-                        <button onClick={() => setActiveTab('lottery')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'lottery' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('lottery')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'lottery' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Gem size={12} className="inline mr-2" /> Lottery
                         </button>
-                        <button onClick={() => setActiveTab('timer')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'timer' ? 'bg-white/10 text-white border-yellow-500' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                        <button onClick={() => setActiveTab('timer')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'timer' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Activity size={12} className="inline mr-2" /> Timer
                         </button>
                     </div>
@@ -489,7 +483,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                             .map(p => {
                                 // Count Inventory types
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const invCounts: any = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+                                const invCounts: any = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
                                 p.inventory.forEach(t => invCounts[t.type]++);
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 const invStr = Object.entries(invCounts).filter(([, v]: any) => v > 0).map(([k, v]) => `${v} ${k[0]}`).join(' ');
@@ -504,7 +498,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                 return (
                                     <div key={p.id} className="p-3 border border-white/10 rounded hover:bg-white/5 transition-colors group">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="font-bold font-mono text-lg text-blue-400">{p.alias}</span>
+                                            <span className="flex flex-col leading-tight">
+                                                <span className="font-bold font-mono text-lg text-blue-400">{p.alias}</span>
+                                                <span className="text-[10px] uppercase tracking-widest text-heist-pink">{districtName(p.nodeId!)}</span>
+                                            </span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap max-w-[100px]">{p.id}</span>
                                                 <button
@@ -646,13 +643,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                 <div className="mt-4 pt-4 border-t border-gray-700">
                                     <button
                                         onClick={() => {
-                                            if (confirm('Initiate PHASE 2? This will allow global resource transfers.')) {
+                                            if (confirm('Open the city? Everyone will be able to hand loot to anyone.')) {
                                                 socket.emit('admin_set_stage', 2);
                                             }
                                         }}
                                         className="w-full px-3 py-2 bg-purple-600/20 border border-purple-500/50 text-purple-200 text-xs font-bold uppercase rounded hover:bg-purple-600/40 transition-all animate-pulse text-center"
                                     >
-                                        INITIATE PHASE 2
+                                        OPEN CITY
                                     </button>
                                 </div>
                             )}
@@ -744,8 +741,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                 return (
                                     <Draggable key={node.id} position={positions[node.id]} onDrag={(_e, data) => handleDrag(node.id, _e, data)} bounds="parent" nodeRef={nodeRefs[node.id]}>
                                         <div ref={nodeRefs[node.id]} className={`absolute w-20 h-20 rounded-full border-2 flex flex-col items-center justify-center cursor-move shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-colors ${player ? 'bg-blue-900/40 border-blue-500' : 'bg-gray-900/80 border-gray-700'}`}>
-                                            <div className="font-black text-xl select-none">{node.id}</div>
-                                            <div className="text-[8px] uppercase tracking-widest text-gray-400 select-none pb-1">{node.role}</div>
+                                            <div className="font-black text-xl select-none leading-none">{node.id}</div>
+                                            <div className="text-[8px] uppercase text-center leading-tight text-gray-300 select-none px-1">{node.label}</div>
                                             {player && <div className="absolute -bottom-6 bg-black/80 px-2 py-1 rounded text-[10px] border border-blue-500/30 whitespace-nowrap">{player.alias}</div>}
                                         </div>
                                     </Draggable>
@@ -786,8 +783,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                             <td className="p-3">
                                                 <span className={`px-2 py-0.5 rounded text-[10px] ${getResourceBadgeClass(tx.type)}`}>{tx.type}</span>
                                             </td>
-                                            <td className="p-3">{tx.from === 'SYSTEM' ? <span className="text-gray-500">SYSTEM</span> : `Node ${tx.from}`}</td>
-                                            <td className="p-3 font-bold">{tx.to === 'POLICE' ? <span className="text-blue-400">🚨 POLICE</span> : `Node ${tx.to}`}</td>
+                                            <td className="p-3">{tx.from === 'SYSTEM' ? <span className="text-gray-500">SYSTEM</span> : districtName(tx.from)}</td>
+                                            <td className="p-3 font-bold">{tx.to === 'POLICE' ? <span className="text-blue-400">🚨 POLICE</span> : districtName(tx.to)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

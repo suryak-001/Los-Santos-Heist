@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { GameManager } from '../src/game';
 import { Player, ResourceType, NodeId, ResourceToken } from '../src/types/game';
 
-const EMPTY: Record<ResourceType, number> = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
+const EMPTY: Record<ResourceType, number> = { Cash: 0, Artwork: 0, Gold: 0, Diamonds: 0 };
 
 let passed = 0;
 async function check(name: string, fn: () => void | Promise<void>) {
@@ -53,8 +53,8 @@ async function main() {
 
     await check('chain 9 -> 4 -> 1 -> 5 -> 10 pays exactly the 3 middlemen', async () => {
         const { game, byNode, give, send } = await freshGame();
-        byNode(10).contract.Vajra = 1;
-        const t = give(9, 'Vajra');
+        byNode(10).contract.Gold = 1;
+        const t = give(9, 'Gold');
         send(9, 4, t); send(4, 1, t); send(1, 5, t); send(5, 10, t);
         for (const n of [4, 1, 5]) assert.equal(byNode(n).facilitationCount, 1, `node ${n}`);
         for (const n of [9, 10]) assert.equal(byNode(n).facilitationCount, 0, `node ${n}`);
@@ -65,8 +65,8 @@ async function main() {
 
     await check('bouncing an item between two players pays nothing', async () => {
         const { byNode, give, send } = await freshGame();
-        byNode(3).contract.Gandiva = 1;
-        const t = give(3, 'Gandiva');
+        byNode(3).contract.Artwork = 1;
+        const t = give(3, 'Artwork');
         send(3, 7, t); send(7, 3, t); send(3, 7, t); send(7, 3, t);
         assert.equal(byNode(7).facilitationCount, 0);
         assert.equal(byNode(3).facilitationCount, 0);
@@ -74,11 +74,11 @@ async function main() {
 
     await check('a fixer is paid at most once per item', async () => {
         const { byNode, give, send } = await freshGame();
-        byNode(1).contract.Trishula = 1;
-        byNode(8).contract.Trishula = 1;
-        const t = give(7, 'Trishula');
+        byNode(1).contract.Cash = 1;
+        byNode(8).contract.Cash = 1;
+        const t = give(7, 'Cash');
         send(7, 3, t); send(3, 1, t);           // 3 relays to 1: paid
-        byNode(1).contract.Trishula = 0;        // 1 no longer needs it
+        byNode(1).contract.Cash = 0;        // 1 no longer needs it
         send(1, 3, t); send(3, 8, t);           // 3 relays again to 8: not paid twice
         assert.equal(byNode(3).facilitationCount, 1);
     });
@@ -86,8 +86,8 @@ async function main() {
     await check('relaying also pays in Open City', async () => {
         const { game, byNode, give, send } = await freshGame();
         game.setStage(2);
-        byNode(12).contract.Brahmastra = 1;
-        const t = give(7, 'Brahmastra');
+        byNode(12).contract.Diamonds = 1;
+        const t = give(7, 'Diamonds');
         send(7, 1, t); send(1, 12, t);
         assert.equal(byNode(1).facilitationCount, 1);
     });
@@ -97,11 +97,11 @@ async function main() {
 
     await check('completing during minute 6 locks in a 700 bonus', async () => {
         const { byNode, give, send, rewind } = await freshGame();
-        byNode(3).contract.Vajra = 1;
-        byNode(3).contract.Gandiva = 1;
-        give(3, 'Gandiva');
+        byNode(3).contract.Gold = 1;
+        byNode(3).contract.Artwork = 1;
+        give(3, 'Artwork');
         rewind(6.5 * MIN);
-        send(7, 3, give(7, 'Vajra'));
+        send(7, 3, give(7, 'Gold'));
         assert.equal(byNode(3).completionBonus, 700);
         assert.equal(byNode(3).score, 200 + 700);
     });
@@ -120,18 +120,18 @@ async function main() {
 
     await check('paused time does not count against the bonus', async () => {
         const { game, byNode, give, send, rewind } = await freshGame();
-        byNode(3).contract.Vajra = 1;
+        byNode(3).contract.Gold = 1;
         rewind(8.5 * MIN);
         game.getState().totalPausedMs = 2 * MIN;
-        send(7, 3, give(7, 'Vajra'));
+        send(7, 3, give(7, 'Gold'));
         assert.equal(byNode(3).completionBonus, 700);
     });
 
     await check('a pause after completing does not raise the locked bonus', async () => {
         const { game, byNode, give, send, rewind } = await freshGame();
-        byNode(3).contract.Vajra = 1;
+        byNode(3).contract.Gold = 1;
         rewind(6.5 * MIN);
-        send(7, 3, give(7, 'Vajra'));
+        send(7, 3, give(7, 'Gold'));
         game.pauseGame();
         game.getState().pausedAt = Date.now() - 5 * MIN;
         game.resumeGame();
@@ -140,14 +140,14 @@ async function main() {
 
     await check('handing away a needed item drops the bonus; re-completing uses the new time', async () => {
         const { byNode, give, send, rewind } = await freshGame();
-        byNode(3).contract.Vajra = 1;
-        byNode(7).contract.Trishula = 1;
-        give(7, 'Trishula');
-        const t = give(3, 'Vajra');
+        byNode(3).contract.Gold = 1;
+        byNode(7).contract.Cash = 1;
+        give(7, 'Cash');
+        const t = give(3, 'Gold');
         rewind(2.5 * MIN);
-        send(7, 3, give(7, 'Gandiva'));          // 3 is complete at minute 2
+        send(7, 3, give(7, 'Artwork'));          // 3 is complete at minute 2
         assert.equal(byNode(3).completionBonus, 900);
-        send(3, 7, t);                           // hands the needed Vajra away
+        send(3, 7, t);                           // hands the needed Gold away
         assert.equal(byNode(3).completionTime, null);
         assert.equal(byNode(3).completionBonus, null);
         assert.equal(byNode(3).score, 0);
@@ -161,11 +161,11 @@ async function main() {
 
     await check('seizes exactly 3 items from the 3 most exposed players, once', async () => {
         const { game, byNode, give } = await freshGame();
-        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
-        for (let i = 0; i < 5; i++) give(1, 'Vajra');
-        for (let i = 0; i < 4; i++) give(2, 'Vajra');
-        for (let i = 0; i < 3; i++) give(3, 'Vajra');
-        give(4, 'Vajra'); give(5, 'Vajra');
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Diamonds = 1; });
+        for (let i = 0; i < 5; i++) give(1, 'Gold');
+        for (let i = 0; i < 4; i++) give(2, 'Gold');
+        for (let i = 0; i < 3; i++) give(3, 'Gold');
+        give(4, 'Gold'); give(5, 'Gold');
         const before = Object.values(game.getState().players).reduce((n, p) => n + p.inventory.length, 0);
 
         assert.ok(game.policeRaid().success);
@@ -182,26 +182,26 @@ async function main() {
 
     await check("never takes a completed player's needed items", async () => {
         const { game, byNode, give, send } = await freshGame();
-        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Diamonds = 1; });
         // Node 1 is complete and holds 5 items, only 2 of them spare
-        byNode(1).contract = { Trishula: 0, Gandiva: 1, Vajra: 2, Brahmastra: 0 };
-        give(1, 'Vajra'); give(1, 'Vajra'); give(1, 'Gandiva'); give(1, 'Trishula');
-        send(3, 1, give(3, 'Trishula'));
+        byNode(1).contract = { Cash: 0, Artwork: 1, Gold: 2, Diamonds: 0 };
+        give(1, 'Gold'); give(1, 'Gold'); give(1, 'Artwork'); give(1, 'Cash');
+        send(3, 1, give(3, 'Cash'));
         assert.ok(byNode(1).completionTime);
         // Three incomplete players hold 1 item each, so node 1 (2 exposed) is ranked first
-        give(7, 'Vajra'); give(8, 'Vajra'); give(9, 'Vajra');
+        give(7, 'Gold'); give(8, 'Gold'); give(9, 'Gold');
 
         assert.ok(game.policeRaid().success);
         assert.equal(game.getState().raid.districts[0], '1');
-        assert.equal(byNode(1).inventory.filter(t => t.type === 'Trishula').length, 1);
-        assert.equal(byNode(1).inventory.filter(t => t.type === 'Vajra').length, 2);
+        assert.equal(byNode(1).inventory.filter(t => t.type === 'Cash').length, 1);
+        assert.equal(byNode(1).inventory.filter(t => t.type === 'Gold').length, 2);
         assert.ok(byNode(1).completionTime, 'still complete');
     });
 
     await check('players with nothing exposed are skipped; reset clears the raid', async () => {
         const { game, byNode, give } = await freshGame();
-        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Brahmastra = 1; });
-        give(7, 'Vajra');
+        Object.values(game.getState().players).forEach(p => { if (p.nodeId) p.contract.Diamonds = 1; });
+        give(7, 'Gold');
         assert.ok(game.policeRaid().success);
         assert.deepEqual(game.getState().raid.districts, ['7']);
         assert.equal(byNode(7).inventory.length, 0);

@@ -36,14 +36,14 @@ const Lottery: React.FC<LotteryProps> = ({ gameState }) => {
         };
     }, [gameState?.lottery?.isRolling, gameState?.lottery?.candidates]);
 
-    if (!gameState) return <div className="min-h-[400px] flex items-center justify-center font-serif tracking-widest animate-pulse text-gray-500">SUMMONING ORACLE...</div>;
-    if (!gameState.lottery) return <div className="min-h-[400px] flex items-center justify-center font-serif tracking-widest text-red-500">RITUAL NOT PREPARED (Missing State)</div>;
+    if (!gameState) return <div className="min-h-[400px] flex items-center justify-center font-display tracking-widest animate-pulse text-gray-500">LOADING DRAW...</div>;
+    if (!gameState.lottery) return <div className="min-h-[400px] flex items-center justify-center font-display tracking-widest text-red-500">DRAW NOT READY (Missing State)</div>;
 
     const { winner, isRolling, candidates } = gameState.lottery;
-    const displayCandidate = isRolling ? animatedName : (winner || "AWAITING RITUAL");
+    const displayCandidate = isRolling ? animatedName : (winner || "AWAITING DRAW");
 
     const getTextClasses = () => {
-        if (isRolling) return 'text-white blur-sm scale-110 skew-x-6 glitch-text';
+        if (isRolling) return 'text-white blur-sm scale-110 skew-x-6 heist-title';
         if (winner) return 'text-red-600 scale-125 drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]';
         return 'text-gray-500';
     };
@@ -61,9 +61,9 @@ const Lottery: React.FC<LotteryProps> = ({ gameState }) => {
                 style={{ backgroundImage: 'radial-gradient(circle at center, #330000 0%, #000000 70%)' }}></div>
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 animate-pulse"></div>
 
-            <div className="text-gray-500 font-mono text-xs uppercase tracking-[0.5em] mb-2">{gameState.lottery.roundTitle || 'RITUAL'}</div>
+            <div className="text-gray-500 font-mono text-xs uppercase tracking-[0.5em] mb-2">{gameState.lottery.roundTitle || 'THE DRAW'}</div>
             <h2 className="text-red-600 text-2xl md:text-3xl font-bold tracking-[1em] mb-8 animate-pulse">
-                THE SACRIFICE
+                THE DRAW
             </h2>
 
             {/* MAIN DISPLAY */}
@@ -91,7 +91,7 @@ const Lottery: React.FC<LotteryProps> = ({ gameState }) => {
 
             {/* FOOTER */}
             <div className="absolute bottom-12 text-[10px] text-gray-500/30 font-mono tracking-widest">
-                LOKAH ORACLE // VER.6.6.6
+                LOS SANTOS LOTTERY
             </div>
         </div>
     );

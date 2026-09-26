@@ -35,13 +35,14 @@ export const MAP_WIDTH = 760;
 export const MAP_HEIGHT = 600;
 export const NODE_POSITIONS: Record<NodeId, { x: number, y: number }> = {
     '9': { x: 380, y: 55 },
-    '7': { x: 90, y: 160 }, '4': { x: 380, y: 170 }, '11': { x: 670, y: 160 },
-    '3': { x: 170, y: 300 }, '1': { x: 300, y: 300 }, '2': { x: 460, y: 300 }, '6': { x: 590, y: 300 },
-    '8': { x: 90, y: 440 }, '5': { x: 380, y: 430 }, '12': { x: 670, y: 440 },
+    '7': { x: 70, y: 160 }, '4': { x: 380, y: 170 }, '11': { x: 690, y: 160 },
+    '3': { x: 140, y: 300 }, '1': { x: 300, y: 300 }, '2': { x: 460, y: 300 }, '6': { x: 620, y: 300 },
+    '8': { x: 70, y: 440 }, '5': { x: 380, y: 430 }, '12': { x: 690, y: 440 },
     '10': { x: 380, y: 545 },
 };
 
-export const districtName = (id: NodeId): string => NODES[id]?.label ?? `District ${id}`;
+// District name for a node id; other ids ('SYSTEM', 'POLICE') pass through
+export const districtName = (id: string): string => NODES[id as NodeId]?.label ?? id;
 
 // "A", "A and B", "A, B and C"
 export const formatDistricts = (ids: NodeId[]): string => {

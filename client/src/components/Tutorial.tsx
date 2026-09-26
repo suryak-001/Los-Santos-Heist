@@ -10,48 +10,46 @@ interface TutorialStep {
 
 const TUTORIAL_STEPS: TutorialStep[] = [
     {
-        title: 'Welcome to LOKAH',
-        content: 'Welcome to the mythical trading game! This tutorial will guide you through the basics. You can skip at any time.',
+        title: 'Welcome to Los Santos',
+        content: 'You run one district of the city. Your crew has a job to pull off and 20 minutes to do it. This quick briefing covers the rules; you can skip it at any time.',
     },
     {
-        title: 'Your Inventory',
-        content: 'These are your Mythical Artifacts. You can drag them to trade with other countries. Each artifact has a unique type and ID.',
-        targetId: 'inventory-section',
-        position: 'right',
-    },
-    {
-        title: 'Trading Mechanism',
-        content: 'Drag artifacts from your inventory to country cards to transfer them. You can also use the attach button in chat.',
-        targetId: 'inventory-section',
-        position: 'right',
-    },
-    {
-        title: 'Sacred Contract',
-        content: 'This is your goal! Collect the specified artifacts to fulfill your contract and achieve ascension.',
+        title: 'Your Heist Order',
+        content: 'This is your secret job: the 3 items you must collect. Every matching item you hold is worth +100. Nobody else can see your order, so tell people what you need.',
         targetId: 'contract-section',
         position: 'right',
     },
     {
-        title: 'Connected Countries',
-        content: 'These are the countries you can communicate and trade with. Click on a country to open the chat.',
-        targetId: 'lokah-map-section',
+        title: 'Your Loot',
+        content: 'You start with loot you mostly DON\'T need: Cash 💵, Artwork 🖼️, Gold 🪙 and Diamonds 💎. Someone else in the city needs it. Drag an item onto a district to hand it over.',
+        targetId: 'inventory-section',
+        position: 'right',
+    },
+    {
+        title: 'The City Map',
+        content: 'All 12 districts and the roads between them. Yours is highlighted. Districts that glow are your neighbours: in Turf War you can hand loot only to them.',
+        targetId: 'city-map-section',
         position: 'bottom',
     },
     {
-        title: 'Chat System',
-        content: 'Select a country to open a secure communication link. Send messages and trade artifacts here.',
-        targetId: 'lokah-map-section',
+        title: 'Call Anyone, Deliver Through Your Turf',
+        content: 'Tap any district to phone that player, even across the city. To get loot across town, set up a chain: hand it to a neighbour, who hands it to theirs, until it reaches the player who needs it. Use the paperclip to attach loot in a call.',
+        targetId: 'city-map-section',
         position: 'bottom',
     },
     {
-        title: 'Attach Resources',
-        content: 'Click the paperclip icon to attach an artifact to your message. This will transfer it to the recipient.',
-        targetId: 'lokah-map-section',
-        position: 'bottom',
+        title: 'Fixer\'s Cut',
+        content: 'Every middleman in a delivery chain earns +100 when the item reaches someone who needs it. Relaying for other crews is a real way to score, even after your own job is done.',
     },
     {
-        title: 'Game Objective',
-        content: 'The objective is to fulfill your contract by collecting the required items. You MUST barter with other countries using the chat system to exchange artifacts. Remember: your contract only includes items you DON\'T have, so trading is essential! BONUS: Facilitating deals between countries (acting as a middleman) earns you extra points!',
+        title: 'Time Is Money',
+        content: 'Completing your Heist Order pays a Mission Passed bonus of 1,000, but it drops by 50 every minute (down to 200). The live bonus is shown under your order. Fast deals beat slow perfect ones.',
+        targetId: 'contract-section',
+        position: 'right',
+    },
+    {
+        title: 'Watch Out for the LSPD',
+        content: 'At some point the police will raid the 3 players holding the most loot they don\'t need, and seize 1 item each. A completed heist is safe. Late in the game the city opens up and anyone can hand loot to anyone. Highest score wins.',
     },
 ];
 
@@ -147,7 +145,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
                         const rect = element.getBoundingClientRect();
                         return (
                             <div
-                                className="absolute border-2 border-myth-gold shadow-[0_0_20px_rgba(255,215,0,0.5)] pointer-events-none"
+                                className="absolute border-2 border-heist-sun shadow-[0_0_20px_rgba(255,215,0,0.5)] pointer-events-none"
                                 style={{
                                     top: rect.top - 4,
                                     left: rect.left - 4,
@@ -162,7 +160,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
 
             {/* Tutorial Tooltip */}
             <div
-                className={`fixed z-50 bg-myth-dark border-2 border-myth-gold p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4' : 'max-w-sm'
+                className={`fixed z-50 bg-heist-dark border-2 border-heist-sun p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${isMobile ? 'w-[calc(100vw-2rem)] left-4' : 'max-w-sm'
                     }`}
                 style={{
                     top: `${position.top}px`,
@@ -171,35 +169,35 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete }) => {
             >
                 <div className="flex justify-between items-start mb-4">
                     <div>
-                        <h3 className="text-xl font-black uppercase text-myth-gold tracking-wider">
+                        <h3 className="text-xl font-black uppercase text-heist-sun tracking-wider">
                             {step.title}
                         </h3>
-                        <div className="text-xs text-myth-grey font-mono mt-1">
+                        <div className="text-xs text-heist-grey font-mono mt-1">
                             STEP {currentStep + 1}/{TUTORIAL_STEPS.length}
                         </div>
                     </div>
                     <button
                         onClick={handleSkip}
-                        className="text-myth-grey hover:text-myth-white transition-colors p-2 touch-target"
+                        className="text-heist-grey hover:text-heist-white transition-colors p-2 touch-target"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <p className="text-myth-white text-sm leading-relaxed mb-6">
+                <p className="text-heist-white text-sm leading-relaxed mb-6">
                     {step.content}
                 </p>
 
                 <div className="flex justify-between items-center gap-4">
                     <button
                         onClick={handleSkip}
-                        className="text-xs text-myth-grey hover:text-myth-white uppercase font-bold tracking-widest transition-colors touch-target"
+                        className="text-xs text-heist-grey hover:text-heist-white uppercase font-bold tracking-widest transition-colors touch-target"
                     >
                         Skip Tutorial
                     </button>
                     <button
                         onClick={handleNext}
-                        className="flex items-center gap-2 bg-myth-gold text-myth-black px-6 py-3 font-bold uppercase text-sm hover:bg-myth-white transition-colors touch-target"
+                        className="flex items-center gap-2 bg-heist-sun text-heist-black px-6 py-3 font-bold uppercase text-sm hover:bg-heist-white transition-colors touch-target"
                     >
                         {currentStep < TUTORIAL_STEPS.length - 1 ? 'Next' : 'Finish'}
                         <ArrowRight size={16} />

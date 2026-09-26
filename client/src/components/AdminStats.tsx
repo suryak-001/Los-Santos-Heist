@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { GameState, Player, Facilitation, Transaction } from '../types/game';
 import { Trophy, Clock, Users, TrendingUp, X, ArrowUpDown } from 'lucide-react';
+import { districtName } from '../topology';
 
 interface AdminStatsProps {
     gameState: GameState;
@@ -98,19 +99,19 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
     return (
         <div className="h-full flex flex-col">
             {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-4 p-4 bg-myth-dark border-b border-myth-grey">
+            <div className="grid grid-cols-4 gap-4 p-4 bg-heist-dark border-b border-heist-grey">
                 <div className="flex items-center gap-3">
-                    <Trophy className="text-myth-gold" size={24} />
+                    <Trophy className="text-heist-sun" size={24} />
                     <div>
-                        <div className="text-xs text-myth-grey uppercase">Total Players</div>
-                        <div className="text-2xl font-bold text-myth-white">{players.length}</div>
+                        <div className="text-xs text-heist-grey uppercase">Total Players</div>
+                        <div className="text-2xl font-bold text-heist-white">{players.length}</div>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <TrendingUp className="text-green-400" size={24} />
                     <div>
-                        <div className="text-xs text-myth-grey uppercase">Completed</div>
-                        <div className="text-2xl font-bold text-myth-white">
+                        <div className="text-xs text-heist-grey uppercase">Completed</div>
+                        <div className="text-2xl font-bold text-heist-white">
                             {players.filter(p => p.completionTime).length}
                         </div>
                     </div>
@@ -118,8 +119,8 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                 <div className="flex items-center gap-3">
                     <Users className="text-blue-400" size={24} />
                     <div>
-                        <div className="text-xs text-myth-grey uppercase">Facilitations</div>
-                        <div className="text-2xl font-bold text-myth-white">
+                        <div className="text-xs text-heist-grey uppercase">Fixer's Cuts</div>
+                        <div className="text-2xl font-bold text-heist-white">
                             {gameState.facilitations.filter(f => f.helpedContractCompletion).length}
                         </div>
                     </div>
@@ -127,8 +128,8 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                 <div className="flex items-center gap-3">
                     <Clock className="text-purple-400" size={24} />
                     <div>
-                        <div className="text-xs text-myth-grey uppercase">Stage</div>
-                        <div className="text-2xl font-bold text-myth-white">{gameState.stage}</div>
+                        <div className="text-xs text-heist-grey uppercase">Phase</div>
+                        <div className="text-2xl font-bold text-heist-white">{gameState.stage === 2 ? 'Open City' : 'Turf War'}</div>
                     </div>
                 </div>
             </div>
@@ -136,11 +137,11 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
             {/* Player Table */}
             <div className="flex-1 overflow-auto p-4">
                 <table className="w-full border-collapse">
-                    <thead className="sticky top-0 bg-myth-dark">
-                        <tr className="border-b-2 border-myth-gold">
-                            <th className="text-left p-3 text-xs uppercase text-myth-grey font-bold">Rank</th>
+                    <thead className="sticky top-0 bg-heist-dark">
+                        <tr className="border-b-2 border-heist-sun">
+                            <th className="text-left p-3 text-xs uppercase text-heist-grey font-bold">Rank</th>
                             <th
-                                className="text-left p-3 text-xs uppercase text-myth-grey font-bold cursor-pointer hover:text-myth-gold transition-colors"
+                                className="text-left p-3 text-xs uppercase text-heist-grey font-bold cursor-pointer hover:text-heist-sun transition-colors"
                                 onClick={() => toggleSort('alias')}
                             >
                                 <div className="flex items-center gap-2">
@@ -148,7 +149,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                                 </div>
                             </th>
                             <th
-                                className="text-right p-3 text-xs uppercase text-myth-grey font-bold cursor-pointer hover:text-myth-gold transition-colors"
+                                className="text-right p-3 text-xs uppercase text-heist-grey font-bold cursor-pointer hover:text-heist-sun transition-colors"
                                 onClick={() => toggleSort('score')}
                             >
                                 <div className="flex items-center justify-end gap-2">
@@ -156,7 +157,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                                 </div>
                             </th>
                             <th
-                                className="text-right p-3 text-xs uppercase text-myth-grey font-bold cursor-pointer hover:text-myth-gold transition-colors"
+                                className="text-right p-3 text-xs uppercase text-heist-grey font-bold cursor-pointer hover:text-heist-sun transition-colors"
                                 onClick={() => toggleSort('completionTime')}
                             >
                                 <div className="flex items-center justify-end gap-2">
@@ -164,27 +165,27 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                                 </div>
                             </th>
                             <th
-                                className="text-right p-3 text-xs uppercase text-myth-grey font-bold cursor-pointer hover:text-myth-gold transition-colors"
+                                className="text-right p-3 text-xs uppercase text-heist-grey font-bold cursor-pointer hover:text-heist-sun transition-colors"
                                 onClick={() => toggleSort('facilitationCount')}
                             >
                                 <div className="flex items-center justify-end gap-2">
-                                    Facilitations <ArrowUpDown size={12} />
+                                    Fixer's Cuts <ArrowUpDown size={12} />
                                 </div>
                             </th>
-                            <th className="text-center p-3 text-xs uppercase text-myth-grey font-bold">Status</th>
+                            <th className="text-center p-3 text-xs uppercase text-heist-grey font-bold">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {players.map((player, index) => (
                             <tr
                                 key={player.id}
-                                className="border-b border-myth-grey/30 hover:bg-myth-grey/10 cursor-pointer transition-colors"
+                                className="border-b border-heist-grey/30 hover:bg-heist-grey/10 cursor-pointer transition-colors"
                                 onClick={() => setSelectedPlayer(player)}
                             >
-                                <td className="p-3 text-myth-white font-mono">{index + 1}</td>
-                                <td className="p-3 text-myth-white font-bold">{player.alias}</td>
-                                <td className="p-3 text-right text-myth-gold font-bold text-lg">{player.score}</td>
-                                <td className="p-3 text-right text-myth-white font-mono text-sm">
+                                <td className="p-3 text-heist-white font-mono">{index + 1}</td>
+                                <td className="p-3 text-heist-white font-bold">{player.alias}</td>
+                                <td className="p-3 text-right text-heist-sun font-bold text-lg">{player.score}</td>
+                                <td className="p-3 text-right text-heist-white font-mono text-sm">
                                     {player.completionTime
                                         ? formatTime(player.completionTime)
                                         : gameState.startTime
@@ -215,18 +216,18 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
             {/* Detailed Player Modal */}
             {selectedPlayer && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-myth-black border-2 border-myth-gold w-full max-w-4xl max-h-[90vh] flex flex-col">
+                    <div className="bg-heist-black border-2 border-heist-sun w-full max-w-4xl max-h-[90vh] flex flex-col">
                         {/* Header */}
-                        <div className="p-4 border-b border-myth-grey flex justify-between items-center bg-myth-dark">
+                        <div className="p-4 border-b border-heist-grey flex justify-between items-center bg-heist-dark">
                             <div>
-                                <h2 className="text-2xl font-black text-myth-white">{selectedPlayer.alias}</h2>
-                                <div className="text-sm text-myth-grey">Country {selectedPlayer.nodeId} Analytics</div>
+                                <h2 className="text-2xl font-black text-heist-white">{selectedPlayer.alias}</h2>
+                                <div className="text-sm text-heist-grey">{districtName(selectedPlayer.nodeId!)} Analytics</div>
                             </div>
                             <button
                                 onClick={() => setSelectedPlayer(null)}
-                                className="p-2 hover:bg-myth-grey/20 transition-colors"
+                                className="p-2 hover:bg-heist-grey/20 transition-colors"
                             >
-                                <X className="text-myth-grey" />
+                                <X className="text-heist-grey" />
                             </button>
                         </div>
 
@@ -234,13 +235,13 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                         <div className="flex-1 overflow-auto p-4 space-y-4">
                             {/* Stats Summary */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="p-3 border border-myth-grey bg-myth-dark">
-                                    <div className="text-xs text-myth-grey uppercase">Final Score</div>
-                                    <div className="text-3xl font-black text-myth-gold">{selectedPlayer.score}</div>
+                                <div className="p-3 border border-heist-grey bg-heist-dark">
+                                    <div className="text-xs text-heist-grey uppercase">Final Score</div>
+                                    <div className="text-3xl font-black text-heist-sun">{selectedPlayer.score}</div>
                                 </div>
-                                <div className="p-3 border border-myth-grey bg-myth-dark">
-                                    <div className="text-xs text-myth-grey uppercase">Completion Time</div>
-                                    <div className="text-xl font-bold text-myth-white">
+                                <div className="p-3 border border-heist-grey bg-heist-dark">
+                                    <div className="text-xs text-heist-grey uppercase">Completion Time</div>
+                                    <div className="text-xl font-bold text-heist-white">
                                         {selectedPlayer.completionTime
                                             ? formatTime(selectedPlayer.completionTime)
                                             : gameState.startTime
@@ -249,8 +250,8 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                                         }
                                     </div>
                                 </div>
-                                <div className="p-3 border border-myth-grey bg-myth-dark">
-                                    <div className="text-xs text-myth-grey uppercase">Facilitations</div>
+                                <div className="p-3 border border-heist-grey bg-heist-dark">
+                                    <div className="text-xs text-heist-grey uppercase">Fixer's Cuts</div>
                                     <div className="text-3xl font-black text-green-400">{selectedPlayer.facilitationCount || 0}</div>
                                 </div>
                             </div>
@@ -258,21 +259,21 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
                             {/* Facilitations */}
                             {getPlayerFacilitations(selectedPlayer.nodeId!).length > 0 && (
                                 <div>
-                                    <h3 className="text-sm uppercase font-bold text-myth-gold mb-2">Facilitations Made</h3>
+                                    <h3 className="text-sm uppercase font-bold text-heist-sun mb-2">Fixer's Cuts Earned</h3>
                                     <div className="space-y-2">
                                         {getPlayerFacilitations(selectedPlayer.nodeId!).map(f => (
-                                            <div key={f.id} className="p-3 border border-myth-grey bg-myth-dark/50">
+                                            <div key={f.id} className="p-3 border border-heist-grey bg-heist-dark/50">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <div className="text-myth-white font-mono text-sm">
-                                                            Country {f.fromNodeId} → <span className="text-myth-gold">Country {f.facilitatorId}</span> → Country {f.toNodeId}
+                                                        <div className="text-heist-white font-mono text-sm">
+                                                            {districtName(f.fromNodeId)} → <span className="text-heist-sun">{districtName(f.facilitatorId)}</span> → {districtName(f.toNodeId)}
                                                         </div>
-                                                        <div className="text-xs text-myth-grey mt-1">
+                                                        <div className="text-xs text-heist-grey mt-1">
                                                             {f.tokenType} ({f.tokenId})
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="text-xs text-myth-grey">{formatTimestamp(f.timestamp)}</div>
+                                                        <div className="text-xs text-heist-grey">{formatTimestamp(f.timestamp)}</div>
                                                         {f.helpedContractCompletion && (
                                                             <div className="text-xs text-green-400 mt-1 font-bold">+100 pts</div>
                                                         )}
@@ -286,25 +287,25 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
 
                             {/* Transactions */}
                             <div>
-                                <h3 className="text-sm uppercase font-bold text-myth-gold mb-2">Transaction History</h3>
+                                <h3 className="text-sm uppercase font-bold text-heist-sun mb-2">Transaction History</h3>
                                 <div className="space-y-1 max-h-64 overflow-auto">
                                     {getPlayerTransactions(selectedPlayer.nodeId!).map(t => (
-                                        <div key={t.id} className="p-2 border border-myth-grey/30 bg-myth-dark/30 text-xs">
-                                            <span className="text-myth-white font-mono">
+                                        <div key={t.id} className="p-2 border border-heist-grey/30 bg-heist-dark/30 text-xs">
+                                            <span className="text-heist-white font-mono">
                                                 {t.from === selectedPlayer.nodeId ? (
                                                     <span className="text-red-400">SENT</span>
                                                 ) : (
                                                     <span className="text-green-400">RECEIVED</span>
                                                 )}
                                             </span>
-                                            <span className="text-myth-grey mx-2">•</span>
-                                            <span className="text-myth-white">{t.type}</span>
-                                            <span className="text-myth-grey mx-2">•</span>
-                                            <span className="text-myth-grey">
-                                                {t.from === selectedPlayer.nodeId ? `To Country ${t.to}` : `From Country ${t.from}`}
+                                            <span className="text-heist-grey mx-2">•</span>
+                                            <span className="text-heist-white">{t.type}</span>
+                                            <span className="text-heist-grey mx-2">•</span>
+                                            <span className="text-heist-grey">
+                                                {t.from === selectedPlayer.nodeId ? `To ${districtName(t.to)}` : `From ${districtName(t.from)}`}
                                             </span>
-                                            <span className="text-myth-grey mx-2">•</span>
-                                            <span className="text-myth-grey text-[10px]">{formatTimestamp(t.timestamp)}</span>
+                                            <span className="text-heist-grey mx-2">•</span>
+                                            <span className="text-heist-grey text-[10px]">{formatTimestamp(t.timestamp)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -312,11 +313,11 @@ const AdminStats: React.FC<AdminStatsProps> = ({ gameState }) => {
 
                             {/* Trading Partners */}
                             <div>
-                                <h3 className="text-sm uppercase font-bold text-myth-gold mb-2">Trading Partners</h3>
+                                <h3 className="text-sm uppercase font-bold text-heist-sun mb-2">Trading Partners</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {getTradingPartners(selectedPlayer.nodeId!).map(partnerId => (
-                                        <div key={partnerId} className="px-3 py-1 border border-myth-grey bg-myth-dark text-myth-white font-mono text-sm">
-                                            Country {partnerId}
+                                        <div key={partnerId} className="px-3 py-1 border border-heist-grey bg-heist-dark text-heist-white font-mono text-sm">
+                                            {districtName(partnerId)}
                                         </div>
                                     ))}
                                 </div>

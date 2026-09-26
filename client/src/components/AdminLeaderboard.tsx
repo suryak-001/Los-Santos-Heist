@@ -65,15 +65,15 @@ const AdminLeaderboard: React.FC<AdminLeaderboardProps> = ({ socket }) => {
     return (
         <div className="space-y-8 p-6 glass-panel">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black text-myth-white uppercase">Leaderboard Manager</h2>
+                <h2 className="text-2xl font-black text-heist-white uppercase">Leaderboard Manager</h2>
                 <div className="flex gap-4 items-center">
-                    <label htmlFor="round-input" className="text-xs font-bold text-myth-grey">CURRENT ROUND</label>
+                    <label htmlFor="round-input" className="text-xs font-bold text-heist-grey">CURRENT ROUND</label>
                     <input
                         id="round-input"
                         type="number"
                         value={state.round}
                         onChange={(e) => setState(prev => ({ ...prev, round: Number.parseInt(e.target.value) || 1 }))}
-                        className="bg-myth-black border border-myth-grey w-16 p-2 text-center font-mono"
+                        className="bg-heist-black border border-heist-grey w-16 p-2 text-center font-mono"
                     />
                     <button onClick={handleSave} className="btn-primary flex items-center gap-2">
                         <Save size={16} /> SAVE CHANGES
@@ -82,28 +82,28 @@ const AdminLeaderboard: React.FC<AdminLeaderboardProps> = ({ socket }) => {
             </div>
 
             {/* ADD NEW */}
-            <div className="grid grid-cols-12 gap-2 bg-myth-dark p-4 border border-myth-grey/30">
+            <div className="grid grid-cols-12 gap-2 bg-heist-dark p-4 border border-heist-grey/30">
                 <div className="col-span-4">
                     <input
                         placeholder="PLAYER NAME"
                         value={newEntry.name}
                         onChange={e => setNewEntry(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full bg-myth-black border border-myth-grey p-2 text-sm"
+                        className="w-full bg-heist-black border border-heist-grey p-2 text-sm"
                     />
                 </div>
                 <div className="col-span-3">
                     <input
-                        placeholder="COUNTRY / NODE"
+                        placeholder="DISTRICT"
                         value={newEntry.country}
                         onChange={e => setNewEntry(prev => ({ ...prev, country: e.target.value }))}
-                        className="w-full bg-myth-black border border-myth-grey p-2 text-sm"
+                        className="w-full bg-heist-black border border-heist-grey p-2 text-sm"
                     />
                 </div>
                 <div className="col-span-3">
                     <select
                         value={newEntry.status}
                         onChange={e => setNewEntry(prev => ({ ...prev, status: e.target.value }))}
-                        className="w-full bg-myth-black border border-myth-grey p-2 text-sm text-myth-white"
+                        className="w-full bg-heist-black border border-heist-grey p-2 text-sm text-heist-white"
                     >
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="ELIMINATED">ELIMINATED</option>
@@ -111,7 +111,7 @@ const AdminLeaderboard: React.FC<AdminLeaderboardProps> = ({ socket }) => {
                     </select>
                 </div>
                 <div className="col-span-2">
-                    <button onClick={addEntry} className="w-full bg-myth-gold text-myth-black font-bold p-2 text-sm hover:bg-white transition-colors flex justify-center items-center gap-1">
+                    <button onClick={addEntry} className="w-full bg-heist-sun text-heist-black font-bold p-2 text-sm hover:bg-white transition-colors flex justify-center items-center gap-1">
                         <Plus size={14} /> ADD
                     </button>
                 </div>
@@ -120,10 +120,10 @@ const AdminLeaderboard: React.FC<AdminLeaderboardProps> = ({ socket }) => {
             {/* LIST */}
             <div className="space-y-2">
                 {state.entries.map((entry, index) => (
-                    <div key={entry.id} className="grid grid-cols-12 gap-2 items-center bg-myth-black/50 p-3 border border-myth-grey/20">
-                        <div className="col-span-1 text-center font-mono text-myth-grey">#{index + 1}</div>
+                    <div key={entry.id} className="grid grid-cols-12 gap-2 items-center bg-heist-black/50 p-3 border border-heist-grey/20">
+                        <div className="col-span-1 text-center font-mono text-heist-grey">#{index + 1}</div>
                         <div className="col-span-4 font-bold">{entry.name}</div>
-                        <div className="col-span-3 text-sm text-myth-grey">{entry.country}</div>
+                        <div className="col-span-3 text-sm text-heist-grey">{entry.country}</div>
                         <div className="col-span-2">
                             <button
                                 onClick={() => {
@@ -154,24 +154,24 @@ const AdminLeaderboard: React.FC<AdminLeaderboardProps> = ({ socket }) => {
                                     socket.emit('update_leaderboard', newState);
                                 }}
                                 className={`text-xs font-mono px-2 py-1 border ${entry.status === 'ELIMINATED'
-                                    ? 'border-myth-red text-myth-red hover:bg-myth-red/10'
-                                    : 'border-myth-gold text-myth-gold hover:bg-myth-gold/10'
+                                    ? 'border-heist-pink text-heist-pink hover:bg-heist-pink/10'
+                                    : 'border-heist-sun text-heist-sun hover:bg-heist-sun/10'
                                     }`}
                             >
                                 {entry.status || 'ACTIVE'}
                             </button>
                         </div>
                         <div className="col-span-2 flex justify-end gap-1">
-                            <button onClick={() => moveEntry(index, 'up')} className="p-1 hover:text-myth-gold" disabled={index === 0}><ArrowUp size={14} /></button>
-                            <button onClick={() => moveEntry(index, 'down')} className="p-1 hover:text-myth-gold" disabled={index === state.entries.length - 1}><ArrowDown size={14} /></button>
-                            <button onClick={() => removeEntry(entry.id)} className="p-1 hover:text-myth-red ml-2"><Trash2 size={14} /></button>
+                            <button onClick={() => moveEntry(index, 'up')} className="p-1 hover:text-heist-sun" disabled={index === 0}><ArrowUp size={14} /></button>
+                            <button onClick={() => moveEntry(index, 'down')} className="p-1 hover:text-heist-sun" disabled={index === state.entries.length - 1}><ArrowDown size={14} /></button>
+                            <button onClick={() => removeEntry(entry.id)} className="p-1 hover:text-heist-pink ml-2"><Trash2 size={14} /></button>
                         </div>
                     </div>
                 ))}
             </div>
 
             {state.entries.length === 0 && (
-                <div className="text-center text-myth-grey font-mono py-8">NO ENTRIES. ADD PLAYERS ABOVE.</div>
+                <div className="text-center text-heist-grey font-mono py-8">NO ENTRIES. ADD PLAYERS ABOVE.</div>
             )}
         </div>
     );

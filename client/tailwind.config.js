@@ -7,21 +7,21 @@ export default {
     theme: {
         extend: {
             colors: {
-                'scarcity-bg': '#0a0a0a', // Keep for backward compat if needed, or replace usages
-                'myth-black': '#000000',
-                'myth-dark': '#121212',
-                'myth-grey': '#606060',
-                'myth-light': '#e5e5e5',
-                'myth-white': '#ffffff',
-                'myth-red': '#ff3333', // Horror Accent
-                'hub-a': '#ff6b6b',
-                'hub-b': '#feca57',
-                'hub-c': '#54a0ff',
-                'myth-gold': '#FFD700',
+                // GTA 6 / Vice City sunset palette
+                'heist-black': '#0a0514',   // night sky
+                'heist-dark': '#160c28',    // panels
+                'heist-grey': '#8a80a6',    // muted text and borders
+                'heist-light': '#f1e9ff',
+                'heist-white': '#ffffff',
+                'heist-pink': '#ff2d8a',    // primary accent (neon pink)
+                'heist-sun': '#ffb13d',     // sunset gold: own district, highlights
+                'heist-orange': '#ff6a3d',
+                'heist-violet': '#8c3cff',
+                'heist-teal': '#1ee3cf',
             },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
-                serif: ['Cinzel', 'serif'],
+                display: ['"Bowlby One"', 'Impact', 'sans-serif'],
             }
         },
     },

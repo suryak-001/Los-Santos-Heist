@@ -7,3 +7,9 @@ build
 .idea
 .vscode
 .gemini
+
+# Runtime game state, written by the server on every change
+server/gameState.json
+
+# Local Claude Code / preview config
+.claude/
