@@ -19,6 +19,7 @@ const LEADERBOARD_ID = 1; // Single global leaderboard for now
 
 export class LeaderboardManager {
     private state: LeaderboardState;
+    private saveQueue: Promise<void> = Promise.resolve();
 
     constructor() {
         this.state = {
@@ -119,10 +120,8 @@ export class LeaderboardManager {
     public async updateState(newState: LeaderboardState) {
         // Validation Logic
         const validatedEntries = newState.entries.map(entry => {
-            // 1. Name: Alphabets only (and spaces usually? User said "Names should be alphabets")
-            // Strict interpretation: /^[A-Za-z]+$/ or allow spaces? "John Doe" is standard.
-            // Let's allow spaces but restrict to letters.
-            let validName = entry.name.replaceAll(/[^a-zA-Z\s]/g, '');
+            // 1. Name: letters, digits, spaces and underscores, so aliases like TT_BM_3 survive
+            let validName = entry.name.replaceAll(/[^\w\s]/g, '');
             if (validName.trim().length === 0) validName = "Unknown"; // Fallback
 
             // 2. Country/Nodes: Alphanumeric
@@ -152,7 +151,9 @@ export class LeaderboardManager {
             entries: validatedEntries
         };
 
-        // Fire and forget with validated data
+        // Fire and forget, one save at a time so concurrent delete+insert
+        // transactions can't duplicate rows. save() logs its own errors.
+        this.saveQueue = this.saveQueue.then(() => this.save());
         return this.state;
     }
 }
