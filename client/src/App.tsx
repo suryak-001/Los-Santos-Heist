@@ -17,6 +17,8 @@ import type { GameState } from './types/game';
 const isDev = import.meta.env.DEV;
 const socket: Socket = io(isDev ? 'http://localhost:3000' : undefined);
 
+const PUBLIC_PATHS = ['/hub', '/control', '/leaderboard', '/lottery', '/timer'];
+
 function App() {
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -38,13 +40,16 @@ function App() {
     };
 
     // --- SESSIONS ---
+    // Public screens never log in: joining would take the player's session
+    // away from their game tab.
+    const isPublicPath = PUBLIC_PATHS.includes(path) || path === '/lead';
     useEffect(() => {
         const storedAlias = localStorage.getItem('player_alias');
-        if (storedAlias && isConnected) {
+        if (storedAlias && isConnected && !isPublicPath) {
             console.log('Restoring session for:', storedAlias);
             socket.emit('join', { alias: storedAlias });
         }
-    }, [isConnected]);
+    }, [isConnected, isPublicPath]);
 
     // --- SOCKET EVENTS ---
     useEffect(() => {
@@ -110,8 +115,7 @@ function App() {
     }
 
     // 0.5. Public Routes (Wrapped in a single persistent PublicLayout)
-    const publicPaths = ['/hub', '/control', '/leaderboard', '/lottery', '/timer'];
-    if (publicPaths.includes(path)) {
+    if (PUBLIC_PATHS.includes(path)) {
         let activeTab: 'hub' | 'leaderboard' | 'lottery' | 'timer' | undefined = undefined;
         if (path === '/hub') activeTab = 'hub';
         if (path === '/leaderboard') activeTab = 'leaderboard';
