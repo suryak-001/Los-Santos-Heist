@@ -47,12 +47,25 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     socket.emit('state_update', game.getState());
 
+    // Admin-only events are rejected unless this socket is logged in as admin.
+    const isAdmin = () => game.getState().players[socket.id]?.alias === 'admin';
+    // Payloads are untyped, the same as with socket.on.
+    const onAdmin = (event: string, handler: (...args: any[]) => void) => {
+        socket.on(event, (...args: any[]) => {
+            if (!isAdmin()) {
+                socket.emit('action_error', 'Unauthorized: Admin access required');
+                return;
+            }
+            handler(...args);
+        });
+    };
+
     // --- LEADERBOARD EVENTS ---
     socket.on('get_leaderboard', () => {
         socket.emit('leaderboard_update', leaderboardManager.getState());
     });
 
-    socket.on('update_leaderboard', (newState: LeaderboardState) => {
+    onAdmin('update_leaderboard', (newState: LeaderboardState) => {
         leaderboardManager.updateState(newState);
         io.emit('leaderboard_update', leaderboardManager.getState());
     });
@@ -69,13 +82,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('start_game', async () => {
+    onAdmin('start_game', async () => {
         await game.startGame();
         broadcastState();
         socket.emit('admin_msg', 'Game STARTED');
     });
 
-    socket.on('reset_game', async () => {
+    onAdmin('reset_game', async () => {
         await game.resetGame();
         broadcastState();
         socket.emit('admin_msg', 'Game Data Reset');
@@ -83,26 +96,26 @@ io.on('connection', (socket) => {
 
 
 
-    socket.on('admin_clear_data', async () => {
+    onAdmin('admin_clear_data', async () => {
         await game.clearLogsAndStats();
         broadcastState();
         io.emit('leaderboard_update', leaderboardManager.getState());
         socket.emit('admin_msg', 'Logs & Stats Cleared (DB + Local)');
     });
 
-    socket.on('pause_game', () => {
+    onAdmin('pause_game', () => {
         game.pauseGame();
         broadcastState();
         socket.emit('admin_msg', 'Game PAUSED');
     });
 
-    socket.on('resume_game', () => {
+    onAdmin('resume_game', () => {
         game.resumeGame();
         broadcastState();
         socket.emit('admin_msg', 'Game RESUMED');
     });
 
-    socket.on('stop_game', async () => {
+    onAdmin('stop_game', async () => {
         await game.stopGame();
         broadcastState();
         socket.emit('admin_msg', 'Game STOPPED (ENDED)');
@@ -119,79 +132,79 @@ io.on('connection', (socket) => {
     });
 
     // --- CONFIG ---
-    socket.on('admin_update_config', (config) => {
+    onAdmin('admin_update_config', (config) => {
         game.updateConfig(config);
         broadcastState();
     });
 
-    socket.on('admin_set_stage', (stage) => {
+    onAdmin('admin_set_stage', (stage) => {
         game.setStage(stage);
         broadcastState();
     });
 
     // --- LOTTERY ---
-    socket.on('admin_update_lottery', (candidates: string[]) => {
+    onAdmin('admin_update_lottery', (candidates: string[]) => {
         game.updateLotteryCandidates(candidates);
         broadcastState();
     });
 
-    socket.on('admin_trigger_lottery', () => {
+    onAdmin('admin_trigger_lottery', () => {
         game.startLotteryRoll(() => {
             broadcastState();
         });
     });
 
-    socket.on('admin_repopulate_lottery', () => {
+    onAdmin('admin_repopulate_lottery', () => {
         game.repopulateLottery();
         io.emit('state_update', game.getState());
         socket.emit('admin_msg', 'Lottery Pool Repopulated from Leaderboard');
     });
 
-    socket.on('admin_reset_lottery_round', (roundTitle: string) => {
+    onAdmin('admin_reset_lottery_round', (roundTitle: string) => {
         game.resetLotteryRound(roundTitle);
         io.emit('state_update', game.getState());
         socket.emit('admin_msg', `Lottery Round Reset: ${roundTitle}`);
     });
 
-    socket.on('admin_set_rigged_winner', (winner) => {
+    onAdmin('admin_set_rigged_winner', (winner) => {
         game.setRiggedWinner(winner);
         socket.emit('admin_msg', winner ? `Next Winner Rigged: ${winner}` : 'Rigging Cleared');
         // Do NOT broadcast to everyone
     });
 
-    socket.on('admin_revive_victim', (name) => {
+    onAdmin('admin_revive_victim', (name) => {
         game.reviveVictim(name);
         broadcastState();
         socket.emit('admin_msg', `Revived Victim: ${name}`);
     });
 
     // --- TIMER CONTROLS ---
-    socket.on('admin_timer_set', (minutes) => {
+    onAdmin('admin_timer_set', (minutes) => {
         game.setTimer(minutes);
         broadcastState();
     });
 
-    socket.on('admin_timer_start', () => {
+    onAdmin('admin_timer_start', () => {
         game.startTimer();
         broadcastState();
     });
 
-    socket.on('admin_timer_stop', () => {
+    onAdmin('admin_timer_stop', () => {
         game.stopTimer();
         broadcastState();
     });
 
-    socket.on('admin_timer_pause', () => {
+    onAdmin('admin_timer_pause', () => {
         game.pauseTimer();
         broadcastState();
     });
 
-    socket.on('admin_timer_resume', () => {
+    onAdmin('admin_timer_resume', () => {
         game.resumeTimer();
         broadcastState();
     });
 
-    socket.on('admin_timer_reset', () => {
+    onAdmin('admin_timer_reset', () => {
         game.resetTimer();
         broadcastState();
     });
@@ -234,15 +247,9 @@ io.on('connection', (socket) => {
     });
 
     // --- ADMIN KICK PLAYER ---
-    socket.on('admin_kick_player', (targetPlayerId: string) => {
+    onAdmin('admin_kick_player', (targetPlayerId: string) => {
         const players = game.getState().players;
         const admin = players[socket.id];
-
-        // Verify admin permission
-        if (!admin || admin.alias !== 'admin') {
-            socket.emit('action_error', 'Unauthorized: Admin access required');
-            return;
-        }
 
         // Find target player and socket
         const targetPlayer = players[targetPlayerId];
