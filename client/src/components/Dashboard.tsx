@@ -5,6 +5,7 @@ import { NODES } from '../topology';
 import { Copy, AlertCircle, Paperclip, X, Crosshair, Search, MessageCircle } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import Tutorial from './Tutorial';
+import { completionBonusAt } from '../scoring';
 
 interface DashboardProps {
     socket: Socket;
@@ -56,14 +57,22 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     const [showCompletionModal, setShowCompletionModal] = useState(false);
     const hasShownCompletionRef = useRef(false);
 
-    // Watch for completion
+    // Watch for completion. Losing it (handing away a needed item) re-arms the modal.
     useEffect(() => {
         if (me?.completionTime && !hasShownCompletionRef.current) {
             setShowCompletionModal(true);
             hasShownCompletionRef.current = true;
-            // Also trigger some confetti if we had that lib, but sticking to basic modal for now
+        } else if (!me?.completionTime) {
+            hasShownCompletionRef.current = false;
         }
     }, [me?.completionTime]);
+
+    // Ticks every second for the live completion bonus
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // --- MOBILE DETECTION ---
     useEffect(() => {
@@ -297,6 +306,15 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 {isContractMet && (
                                     <div className="mt-4 p-3 bg-green-500/10 border border-green-500 text-green-500 text-center font-bold uppercase text-xs tracking-widest animate-pulse">
                                         Ascension Ready
+                                    </div>
+                                )}
+                                {me.completionBonus !== null ? (
+                                    <div className="text-xs font-mono uppercase text-myth-gold">
+                                        Bonus locked in: {me.completionBonus}
+                                    </div>
+                                ) : gameState.phase === 'ACTIVE' && (
+                                    <div className="text-xs font-mono uppercase text-myth-grey">
+                                        Mission Passed bonus right now: <span className="text-myth-gold font-bold">{completionBonusAt(gameState, now)}</span>
                                     </div>
                                 )}
                             </div>
@@ -694,11 +712,19 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
                                 Zero-Sum Ascension Achieved
                             </p>
 
-                            <div className="bg-black/50 border border-myth-grey/50 p-6 mb-8">
-                                <span className="block text-xs text-myth-grey uppercase mb-2">Completion Time</span>
-                                <span className="text-2xl font-mono text-white font-bold">
-                                    {me.completionTime ? new Date(me.completionTime).toLocaleTimeString() : '--:--:--'}
-                                </span>
+                            <div className="bg-black/50 border border-myth-grey/50 p-6 mb-8 grid grid-cols-2 gap-4">
+                                <div>
+                                    <span className="block text-xs text-myth-grey uppercase mb-2">Completion Time</span>
+                                    <span className="text-2xl font-mono text-white font-bold">
+                                        {me.completionTime ? new Date(me.completionTime).toLocaleTimeString() : '--:--:--'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-xs text-myth-grey uppercase mb-2">Bonus Earned</span>
+                                    <span className="text-2xl font-mono text-myth-gold font-bold">
+                                        +{me.completionBonus ?? 0}
+                                    </span>
+                                </div>
                             </div>
 
                             <button

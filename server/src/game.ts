@@ -19,6 +19,8 @@ export class GameManager {
             phase: 'LOBBY',
             stage: 1,
             paused: false,
+            pausedAt: null,
+            totalPausedMs: 0,
             config: {
                 totalResources: null,
                 resourcesPerPlayer: 3
@@ -130,6 +132,7 @@ export class GameManager {
                 isReady: false,
                 online: true,
                 completionTime: null,
+                completionBonus: null,
                 facilitationCount: 0,
                 facilitatedTransfers: []
             };
@@ -170,6 +173,7 @@ export class GameManager {
             isReady: false,
             online: true,
             completionTime: null,
+            completionBonus: null,
             facilitationCount: 0,
             facilitatedTransfers: []
         };
@@ -199,6 +203,9 @@ export class GameManager {
 
         this.state.phase = 'ACTIVE';
         this.state.startTime = Date.now();
+        this.state.paused = false;
+        this.state.pausedAt = null;
+        this.state.totalPausedMs = 0;
         this.distributeEconomy();
         this.saveState();
 
@@ -270,7 +277,6 @@ export class GameManager {
 
         const [token] = sender.inventory.splice(tokenIndex, 1);
 
-        const wasComplete = this.isContractComplete(target);
         const targetHeldBefore = token.history.includes(target.alias);
 
         token.history.push(target.alias);
@@ -279,13 +285,11 @@ export class GameManager {
         const paidFixers = this.settleFixersCut(token, sender, target, targetHeldBefore);
         paidFixers.forEach(f => f.score = this.calculateScore(f));
 
+        // Completion first, so a fresh completion scores with its time bonus
+        this.updateCompletion(sender);
+        this.updateCompletion(target);
         sender.score = this.calculateScore(sender);
         target.score = this.calculateScore(target);
-
-        const nowComplete = this.isContractComplete(target);
-        if (!wasComplete && nowComplete && !target.completionTime) {
-            target.completionTime = Date.now();
-        }
 
         // PERSISTENCE (Update Player Stats)
         this.persistPlayerStats([sender, target, ...paidFixers]);
@@ -389,6 +393,8 @@ export class GameManager {
         this.state.currentSessionId = null;
         this.state.phase = 'LOBBY';
         this.state.paused = false;
+        this.state.pausedAt = null;
+        this.state.totalPausedMs = 0;
         this.state.startTime = null;
         this.state.transactions = [];
         this.state.facilitations = [];
@@ -400,6 +406,7 @@ export class GameManager {
             p.score = 0;
             p.isReady = false;
             p.completionTime = null;
+            p.completionBonus = null;
             p.facilitationCount = 0;
             p.facilitatedTransfers = [];
         });
@@ -426,13 +433,24 @@ export class GameManager {
     }
 
     public pauseGame() {
+        if (this.state.paused) return;
         this.state.paused = true;
+        this.state.pausedAt = Date.now();
         this.saveState();
     }
 
     public resumeGame() {
-        this.state.paused = false;
+        this.endPause();
         this.saveState();
+    }
+
+    // Folds the current pause into totalPausedMs so the completion bonus ignores it
+    private endPause() {
+        if (this.state.paused && this.state.pausedAt) {
+            this.state.totalPausedMs = (this.state.totalPausedMs ?? 0) + (Date.now() - this.state.pausedAt);
+        }
+        this.state.paused = false;
+        this.state.pausedAt = null;
     }
 
     public async stopGame() {
@@ -440,7 +458,7 @@ export class GameManager {
 
         await this.persistSessionEnd();
         this.state.phase = 'ENDED';
-        this.state.paused = false; // Unpause if paused, just end it
+        this.endPause(); // Unpause if paused, just end it
         this.state.timer.isRunning = false;
         this.saveState();
     }
@@ -596,6 +614,7 @@ export class GameManager {
             p.contract = { Trishula: 0, Gandiva: 0, Vajra: 0, Brahmastra: 0 };
             p.score = 0;
             p.completionTime = null;
+            p.completionBonus = null;
             p.facilitationCount = 0;
             p.facilitatedTransfers = [];
 
@@ -759,7 +778,10 @@ export class GameManager {
         }
 
         // Final Score Recalculation
-        players.forEach(p => p.score = this.calculateScore(p));
+        players.forEach(p => {
+            this.updateCompletion(p);
+            p.score = this.calculateScore(p);
+        });
 
         console.log(`[GAME] Distribution Complete. Pool: ${pool.length}`);
     }
@@ -782,7 +804,7 @@ export class GameManager {
                 complete = false;
             }
         });
-        if (complete) score += 1000;
+        if (complete) score += p.completionBonus ?? this.completionBonusAt(p.completionTime ?? Date.now());
 
         const FACILITATION_BONUS = 100;
         score += p.facilitationCount * FACILITATION_BONUS;
@@ -844,6 +866,29 @@ export class GameManager {
         const currentCount = player.inventory.filter(t => t.type === type).length;
         const needed = player.contract[type];
         return currentCount <= needed;
+    }
+
+    // Time Is Money: 1,000 for completing in minute 0, minus 50 per whole
+    // minute of play (paused time excluded), never below 200.
+    public completionBonusAt(time: number): number {
+        const { startTime, paused, pausedAt } = this.state;
+        if (!startTime) return 1000;
+        const pausedMs = (this.state.totalPausedMs ?? 0) + (paused && pausedAt ? time - pausedAt : 0);
+        const minutes = Math.floor(Math.max(0, time - startTime - pausedMs) / 60000);
+        return Math.max(200, 1000 - 50 * minutes);
+    }
+
+    // Locks in the completion time and bonus when an order becomes complete,
+    // and clears both when it stops being complete (a needed item was handed away).
+    private updateCompletion(player: Player) {
+        const complete = this.isContractComplete(player);
+        if (complete && !player.completionTime) {
+            player.completionTime = Date.now();
+            player.completionBonus = this.completionBonusAt(player.completionTime);
+        } else if (!complete && player.completionTime) {
+            player.completionTime = null;
+            player.completionBonus = null;
+        }
     }
 
     private isContractComplete(player: Player): boolean {

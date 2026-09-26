@@ -29,6 +29,8 @@ async function freshGame() {
         p.inventory = [];
         p.contract = { ...EMPTY };
         p.score = 0;
+        p.completionTime = null;
+        p.completionBonus = null;
     });
     const byNode = (n: number): Player => players[`sock${n}`];
     let seq = 0;
@@ -41,7 +43,9 @@ async function freshGame() {
         const res = game.transferResource(`sock${from}`, String(to) as NodeId, token.id);
         assert.ok(res.success, `transfer ${from} -> ${to} failed: ${res.msg}`);
     };
-    return { game, byNode, give, send };
+    // Pretend the game started this long ago
+    const rewind = (ms: number) => { game.getState().startTime = Date.now() - ms; };
+    return { game, byNode, give, send, rewind };
 }
 
 async function main() {
@@ -86,6 +90,71 @@ async function main() {
         const t = give(7, 'Brahmastra');
         send(7, 1, t); send(1, 12, t);
         assert.equal(byNode(1).facilitationCount, 1);
+    });
+
+    console.log('\nTime Is Money');
+    const MIN = 60_000;
+
+    await check('completing during minute 6 locks in a 700 bonus', async () => {
+        const { byNode, give, send, rewind } = await freshGame();
+        byNode(3).contract.Vajra = 1;
+        byNode(3).contract.Gandiva = 1;
+        give(3, 'Gandiva');
+        rewind(6.5 * MIN);
+        send(7, 3, give(7, 'Vajra'));
+        assert.equal(byNode(3).completionBonus, 700);
+        assert.equal(byNode(3).score, 200 + 700);
+    });
+
+    await check('bonus steps down 50 per minute with a floor of 200', async () => {
+        const { game, rewind } = await freshGame();
+        const now = Date.now();
+        const at = (m: number) => { rewind(m * MIN); return game.completionBonusAt(now); };
+        assert.equal(at(0), 1000);
+        assert.equal(at(3.99), 850);
+        assert.equal(at(4), 800);
+        assert.equal(at(12), 400);
+        assert.equal(at(16), 200);
+        assert.equal(at(40), 200);
+    });
+
+    await check('paused time does not count against the bonus', async () => {
+        const { game, byNode, give, send, rewind } = await freshGame();
+        byNode(3).contract.Vajra = 1;
+        rewind(8.5 * MIN);
+        game.getState().totalPausedMs = 2 * MIN;
+        send(7, 3, give(7, 'Vajra'));
+        assert.equal(byNode(3).completionBonus, 700);
+    });
+
+    await check('a pause after completing does not raise the locked bonus', async () => {
+        const { game, byNode, give, send, rewind } = await freshGame();
+        byNode(3).contract.Vajra = 1;
+        rewind(6.5 * MIN);
+        send(7, 3, give(7, 'Vajra'));
+        game.pauseGame();
+        game.getState().pausedAt = Date.now() - 5 * MIN;
+        game.resumeGame();
+        assert.equal(game.calculateScore(byNode(3)), 100 + 700);
+    });
+
+    await check('handing away a needed item drops the bonus; re-completing uses the new time', async () => {
+        const { byNode, give, send, rewind } = await freshGame();
+        byNode(3).contract.Vajra = 1;
+        byNode(7).contract.Trishula = 1;
+        give(7, 'Trishula');
+        const t = give(3, 'Vajra');
+        rewind(2.5 * MIN);
+        send(7, 3, give(7, 'Gandiva'));          // 3 is complete at minute 2
+        assert.equal(byNode(3).completionBonus, 900);
+        send(3, 7, t);                           // hands the needed Vajra away
+        assert.equal(byNode(3).completionTime, null);
+        assert.equal(byNode(3).completionBonus, null);
+        assert.equal(byNode(3).score, 0);
+        rewind(9.5 * MIN);
+        send(7, 3, t);                           // gets it back at minute 9
+        assert.equal(byNode(3).completionBonus, 550);
+        assert.equal(byNode(3).score, 100 + 550);
     });
 
     console.log(`\n${passed} checks passed`);

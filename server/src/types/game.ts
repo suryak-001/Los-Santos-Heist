@@ -59,6 +59,7 @@ export interface Player {
   isReady: boolean;
   online: boolean;
   completionTime: number | null; // Timestamp when contract completed
+  completionBonus: number | null; // Time bonus locked in at completion
   facilitationCount: number; // Count of successful facilitations
   facilitatedTransfers: string[]; // IDs of tokens they facilitated
 }
@@ -80,6 +81,8 @@ export interface GameState {
   phase: 'LOBBY' | 'ACTIVE' | 'ENDED';
   stage: 1 | 2; // 1 = Topology Restricted, 2 = Unrestricted
   paused: boolean;
+  pausedAt: number | null; // When the current pause started
+  totalPausedMs: number; // Paused time excluded from the completion bonus
   config: GameConfig;
   players: Record<string, Player>;
   messages: ChatMessage[];
