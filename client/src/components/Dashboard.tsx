@@ -308,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ socket, gameState, myId }) => {
     const selectedPlayer = selectedNeighbor ? Object.values(gameState.players).find(p => p.nodeId === selectedNeighbor) : undefined;
 
     return (
-        <div className="min-h-screen lg:h-screen city-bg text-heist-white font-sans p-3 lg:p-6 flex flex-col gap-3 lg:gap-4 lg:overflow-hidden">
+        <div className="min-h-screen lg:h-screen text-heist-white font-sans p-3 lg:p-6 flex flex-col gap-3 lg:gap-4 lg:overflow-hidden">
 
             {/* HEADER */}
             <header className="flex flex-col lg:flex-row gap-3 lg:gap-4 shrink-0">

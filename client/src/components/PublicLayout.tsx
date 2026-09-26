@@ -108,7 +108,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ gameState, children, active
     };
 
     return (
-        <div className={`min-h-screen city-bg text-white font-sans selection:bg-heist-pink selection:text-white flex flex-col transition-colors duration-500 ${isCrisis ? 'animate-pulse' : ''}`}>
+        <div className={`min-h-screen text-white font-sans selection:bg-heist-pink selection:text-white flex flex-col transition-colors duration-500 ${isCrisis ? 'animate-pulse' : ''}`}>
             {/* GLOBAL HEADER */}
             <header className="border-b border-heist-pink/30 bg-heist-black/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between relative">

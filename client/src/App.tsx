@@ -8,6 +8,7 @@ import Lottery from './components/Lottery';
 import Timer from './components/Timer';
 import Hub from './components/Hub';
 import PublicLayout from './components/PublicLayout';
+import CityBackdrop from './components/CityBackdrop';
 import type { GameState } from './types/game';
 
 // Initialize Socket outside component to prevent multiple connections
@@ -97,54 +98,66 @@ function App() {
         };
     }, []);
 
-    if (!isConnected) {
-        return (
-            <div className="h-screen city-bg flex items-center justify-center text-heist-light font-mono font-bold tracking-[0.3em] animate-pulse">
-                CONNECTING TO LOS SANTOS...
+    // Which screen to show; every one sits on the Los Santos backdrop
+    const renderScreen = () => {
+        if (!isConnected) {
+            return (
+                <div className="h-screen flex items-center justify-center text-heist-light font-mono font-bold tracking-[0.3em] animate-pulse">
+                    CONNECTING TO LOS SANTOS...
+                </div>
+            );
+        }
+
+        // 0. Standalone Leaderboard (No Navigation)
+        if (path === '/lead') {
+            return (
+                <div className="min-h-screen text-white font-sans selection:bg-heist-pink selection:text-white overflow-auto">
+                    <Leaderboard socket={socket} />
+                </div>
+            );
+        }
+
+        // 0.5. Public Routes (Wrapped in a single persistent PublicLayout)
+        if (PUBLIC_PATHS.includes(path)) {
+            let activeTab: 'hub' | 'leaderboard' | 'lottery' | 'timer' | undefined = undefined;
+            if (path === '/hub') activeTab = 'hub';
+            if (path === '/leaderboard') activeTab = 'leaderboard';
+            if (path === '/lottery') activeTab = 'lottery';
+            if (path === '/timer') activeTab = 'timer';
+
+            return (
+                <PublicLayout gameState={gameState} activeTab={activeTab} onNavigate={navigate}>
+                    {path === '/hub' || path === '/control' ? <Hub socket={socket} onNavigate={navigate} /> : null}
+                    {path === '/leaderboard' ? <Leaderboard socket={socket} /> : null}
+                    {path === '/lottery' ? <Lottery gameState={gameState} /> : null}
+                    {path === '/timer' ? <Timer socket={socket} gameState={gameState} /> : null}
+                </PublicLayout>
+            );
+        }
+
+        // 1. Not Logged In
+        const me = gameState?.players[myId];
+        if (!gameState || !me) {
+            return <Lobby socket={socket} />;
+        }
+
+        // 2. Admin
+        if (me.alias === 'admin') {
+            return <AdminPanel socket={socket} gameState={gameState} />;
+        }
+
+        // 3. Player Dashboard
+        return <Dashboard socket={socket} gameState={gameState} myId={myId} />;
+    };
+
+    return (
+        <>
+            <CityBackdrop />
+            <div className="relative z-10">
+                {renderScreen()}
             </div>
-        );
-    }
-
-    // 0. Standalone Leaderboard (No Navigation)
-    if (path === '/lead') {
-        return (
-            <div className="min-h-screen city-bg text-white font-sans selection:bg-heist-pink selection:text-white overflow-auto">
-                <Leaderboard socket={socket} />
-            </div>
-        );
-    }
-
-    // 0.5. Public Routes (Wrapped in a single persistent PublicLayout)
-    if (PUBLIC_PATHS.includes(path)) {
-        let activeTab: 'hub' | 'leaderboard' | 'lottery' | 'timer' | undefined = undefined;
-        if (path === '/hub') activeTab = 'hub';
-        if (path === '/leaderboard') activeTab = 'leaderboard';
-        if (path === '/lottery') activeTab = 'lottery';
-        if (path === '/timer') activeTab = 'timer';
-
-        return (
-            <PublicLayout gameState={gameState} activeTab={activeTab} onNavigate={navigate}>
-                {path === '/hub' || path === '/control' ? <Hub socket={socket} onNavigate={navigate} /> : null}
-                {path === '/leaderboard' ? <Leaderboard socket={socket} /> : null}
-                {path === '/lottery' ? <Lottery gameState={gameState} /> : null}
-                {path === '/timer' ? <Timer socket={socket} gameState={gameState} /> : null}
-            </PublicLayout>
-        );
-    }
-
-    // 1. Not Logged In
-    const me = gameState?.players[myId];
-    if (!gameState || !me) {
-        return <Lobby socket={socket} />;
-    }
-
-    // 2. Admin
-    if (me.alias === 'admin') {
-        return <AdminPanel socket={socket} gameState={gameState} />;
-    }
-
-    // 3. Player Dashboard
-    return <Dashboard socket={socket} gameState={gameState} myId={myId} />;
+        </>
+    );
 }
 
 export default App;

@@ -27,7 +27,7 @@ const Lobby: React.FC<LobbyProps> = ({ socket }) => {
     };
 
     return (
-        <div className="min-h-screen city-bg flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
 
                 {/* BRANDING */}

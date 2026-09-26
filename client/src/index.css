@@ -37,19 +37,6 @@
   @apply text-[11px] uppercase tracking-[0.2em] font-bold;
 }
 
-/* LOS SANTOS: dusk sky, sunset glow and a skyline with palms along the bottom */
-.city-bg {
-  background-color: #0a0514;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 220' preserveAspectRatio='none'%3E%3Cg fill='%2307030d'%3E%3Cpath d='M0 220V150h40v-30h30v40h25V95h45v65h20v-40h35v100h30V70h18V50h14v20h18v150h25v-80h40v-35h30v115h22V110h50v110h20v-60h35V85h28v-25h20v25h28v160h30v-90h45v90h20V120h38v-40h24v40h30v100h25v-70h40v70h30V60h16V35h12v25h16v160h28v-95h42v95h24v-55h36v55h30V100h44v120h26v-70h34v70h40v-45h40v45z'/%3E%3Cpath d='M300 220c2-40 6-75 16-105l4 1c-9 30-12 65-13 104z'/%3E%3Cpath d='M318 112c-18-10-40-8-56 4 18-4 36-2 52 8zm2 0c10-16 30-24 50-20-18 2-34 10-46 24zm-2 2c-6-18-22-30-42-32 16 6 28 18 34 34zm4-2c20-6 42 0 56 16-16-8-34-12-52-10z'/%3E%3Cpath d='M905 220c1-50 4-90 12-125l4 1c-7 34-9 74-10 124z'/%3E%3Cpath d='M919 92c-18-10-40-8-56 4 18-4 36-2 52 8zm2 0c10-16 30-24 50-20-18 2-34 10-46 24zm-2 2c-6-18-22-30-42-32 16 6 28 18 34 34zm4-2c20-6 42 0 56 16-16-8-34-12-52-10z'/%3E%3C/g%3E%3C/svg%3E"),
-    radial-gradient(ellipse 70% 45% at 50% 100%, rgba(255, 138, 61, 0.45), transparent 70%),
-    linear-gradient(180deg, #0a0514 0%, #1a0b33 38%, #3d1250 62%, #8a2560 82%, #ff6a3d 100%);
-  background-repeat: repeat-x, no-repeat, no-repeat;
-  background-size: 1200px 160px, 100% 100%, 100% 100%;
-  background-position: bottom center, bottom center, 0 0;
-  background-attachment: fixed;
-}
-
 /* GTA 6 logo style: sunset gradient lettering with a hard black shadow */
 .vi-gradient {
   background-image: linear-gradient(180deg, #ffd36b 0%, #ff8a3d 38%, #ff2d8a 70%, #8c3cff 100%);
