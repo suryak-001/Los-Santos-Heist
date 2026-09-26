@@ -211,6 +211,7 @@ export class GameManager {
         this.state.totalPausedMs = 0;
         this.state.raid = NO_RAID();
         this.distributeEconomy();
+        this.syncLeaderboard();
         this.saveState();
 
         // PERSISTENCE (DB) ... (Existing DB logic check: can it run if game persisted?)
@@ -433,6 +434,7 @@ export class GameManager {
             pastWinners: []
         };
 
+        this.syncLeaderboard();
         this.saveState(); // Save reset state
         return true;
     }

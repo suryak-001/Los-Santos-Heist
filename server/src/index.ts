@@ -85,12 +85,14 @@ io.on('connection', (socket) => {
     onAdmin('start_game', async () => {
         await game.startGame();
         broadcastState();
+        io.emit('leaderboard_update', leaderboardManager.getState());
         socket.emit('admin_msg', 'Game STARTED');
     });
 
     onAdmin('reset_game', async () => {
         await game.resetGame();
         broadcastState();
+        io.emit('leaderboard_update', leaderboardManager.getState());
         socket.emit('admin_msg', 'Game Data Reset');
     });
 
@@ -126,6 +128,7 @@ io.on('connection', (socket) => {
         const res = game.transferResource(socket.id, targetNodeId, tokenId);
         if (res.success) {
             broadcastState(); // This will now include the new chat message in state.messages
+            io.emit('leaderboard_update', leaderboardManager.getState());
         } else {
             socket.emit('action_error', res.msg);
         }
