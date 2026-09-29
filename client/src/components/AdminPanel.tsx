@@ -474,6 +474,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                 <section className="glass-panel col-span-1 overflow-y-auto">
                     <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2 sticky top-0 bg-black/80 backdrop-blur p-2 -mx-2 -mt-2 border-b border-white/10 z-10">
                         <Users size={14} /> Connected Agents
+                        {(() => {
+                            const agents = Object.values(gameState.players).filter(p => p.alias !== 'admin' && p.nodeId);
+                            const online = agents.filter(p => p.online).length;
+                            return (
+                                <span className={`ml-auto font-mono tracking-normal ${online === Object.keys(NODES).length ? 'text-green-400' : 'text-gray-300'}`}>
+                                    {online}/{Object.keys(NODES).length} online
+                                </span>
+                            );
+                        })()}
                     </h2>
                     <div className="space-y-2">
                         {Object.values(gameState.players)
@@ -496,10 +505,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                                 };
 
                                 return (
-                                    <div key={p.id} className="p-3 border border-white/10 rounded hover:bg-white/5 transition-colors group">
+                                    <div key={p.id} className={`p-3 border rounded hover:bg-white/5 transition-colors group ${p.online ? 'border-green-500/40 bg-green-500/5' : 'border-white/10 opacity-60'}`}>
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="flex flex-col leading-tight">
-                                                <span className="font-bold font-mono text-lg text-blue-400">{p.alias}</span>
+                                                <span className="flex items-center gap-2">
+                                                    <span className="font-bold font-mono text-lg text-blue-400">{p.alias}</span>
+                                                    {p.online ? (
+                                                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/15 border border-green-500/50 text-green-400 text-[9px] font-bold tracking-widest">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> ONLINE
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-1.5 py-0.5 rounded bg-gray-500/15 border border-gray-500/50 text-gray-400 text-[9px] font-bold tracking-widest">
+                                                            OFFLINE
+                                                        </span>
+                                                    )}
+                                                </span>
                                                 <span className="text-[10px] uppercase tracking-widest text-heist-pink">{districtName(p.nodeId!)}</span>
                                             </span>
                                             <div className="flex items-center gap-2">
@@ -537,6 +557,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                             <h2 className="text-xs uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                 <GripHorizontal size={14} /> Drag nodes to rearrange
                             </h2>
+                            <div className="flex gap-3 text-[10px] uppercase tracking-widest text-gray-400">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400" /> Online</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500/70" /> Offline</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-600" /> Vacant</span>
+                            </div>
                         </div>
 
                         {/* GAME CONTROLS - COMMAND DECK */}
@@ -738,12 +763,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                             {/* NODES */}
                             {Object.values(NODES).map(node => {
                                 const player = Object.values(gameState.players).find(p => p.nodeId === node.id);
+                                const nodeTone = !player
+                                    ? 'bg-gray-900/80 border-gray-700 shadow-[0_0_15px_rgba(0,0,0,0.5)]'
+                                    : player.online
+                                        ? 'bg-green-900/50 border-green-400 shadow-[0_0_18px_rgba(74,222,128,0.55)]'
+                                        : 'bg-gray-900/80 border-red-500/70 border-dashed shadow-[0_0_15px_rgba(0,0,0,0.5)]';
                                 return (
                                     <Draggable key={node.id} position={positions[node.id]} onDrag={(_e, data) => handleDrag(node.id, _e, data)} bounds="parent" nodeRef={nodeRefs[node.id]}>
-                                        <div ref={nodeRefs[node.id]} className={`absolute w-20 h-20 rounded-full border-2 flex flex-col items-center justify-center cursor-move shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-colors ${player ? 'bg-blue-900/40 border-blue-500' : 'bg-gray-900/80 border-gray-700'}`}>
+                                        <div ref={nodeRefs[node.id]} className={`absolute w-20 h-20 rounded-full border-2 flex flex-col items-center justify-center cursor-move transition-colors ${nodeTone}`}>
                                             <div className="font-black text-xl select-none leading-none">{node.id}</div>
                                             <div className="text-[8px] uppercase text-center leading-tight text-gray-300 select-none px-1">{node.label}</div>
-                                            {player && <div className="absolute -bottom-6 bg-black/80 px-2 py-1 rounded text-[10px] border border-blue-500/30 whitespace-nowrap">{player.alias}</div>}
+                                            {player && <div className={`absolute -bottom-6 bg-black/80 px-2 py-1 rounded text-[10px] border whitespace-nowrap ${player.online ? 'border-green-400/60 text-green-300' : 'border-red-500/40 text-gray-400'}`}>{player.alias}{player.online ? '' : ' · offline'}</div>}
                                         </div>
                                     </Draggable>
                                 );
