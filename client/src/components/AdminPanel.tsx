@@ -18,6 +18,10 @@ const INITIAL_POSITIONS = Object.fromEntries(
     Object.entries(NODE_POSITIONS).map(([id, { x, y }]) => [id, { x: x - 40, y: y - 40 }])
 ) as Record<NodeId, { x: number, y: number }>;
 
+// The Sacrifice lottery was last year's elimination; Round 2 ranks players instead.
+// Its tab is hidden but kept, so flip this to bring it back.
+const SHOW_LOTTERY = false;
+
 const NODE_COLORS: Record<string, string> = {
     '1': '#ef4444', '2': '#3b82f6', '3': '#22c55e', '4': '#eab308',
     '5': '#a855f7', '6': '#ec4899', '7': '#f97316', '8': '#06b6d4',
@@ -435,9 +439,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ socket, gameState }) => {
                         <button onClick={() => setActiveTab('leaderboard')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'leaderboard' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Trophy size={12} className="inline mr-2" /> Leaderboard
                         </button>
-                        <button onClick={() => setActiveTab('lottery')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'lottery' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
-                            <Gem size={12} className="inline mr-2" /> Lottery
-                        </button>
+                        {SHOW_LOTTERY && (
+                            <button onClick={() => setActiveTab('lottery')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'lottery' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
+                                <Gem size={12} className="inline mr-2" /> Lottery
+                            </button>
+                        )}
                         <button onClick={() => setActiveTab('timer')} className={`px-4 py-1 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'timer' ? 'bg-white/10 text-white border-heist-pink' : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'}`}>
                             <Activity size={12} className="inline mr-2" /> Timer
                         </button>
